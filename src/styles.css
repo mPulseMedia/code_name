@@ -31,14 +31,77 @@ body {
 
 .index {
     list-style-type: none;
+    line-height: 1.2;
 }
 
 .name {
-    padding: 8px 0;
+    padding: 4px 0;
     font-family: monospace;
-    font-size: 16px;
+    font-size: 14px;
     display: flex;
     flex-wrap: wrap;
+    cursor: pointer;
+    border-radius: 4px;
+    transition: background-color 0.2s ease;
+    position: relative;
+    padding-right: 5px;
+}
+
+.name_function {
+    /* Color is now only in the text */
+}
+
+.name_variable {
+    /* Color is now only in the text */
+}
+
+.name_class {
+    /* Color is now only in the text */
+}
+
+.name:hover {
+    background-color: #3a3a3a;
+}
+
+.name.copied {
+    animation: copy-flash 1s ease;
+}
+
+@keyframes copy-flash {
+    0% {
+        background-color: #3a3a3a;
+    }
+    20% {
+        background-color: #61dafb;
+    }
+    100% {
+        background-color: transparent;
+    }
+}
+
+.name.copied::after {
+    content: 'Copied!';
+    position: absolute;
+    right: 10px;
+    color: #61dafb;
+    font-size: 12px;
+    opacity: 0;
+    animation: fade-in-out 1s ease;
+}
+
+@keyframes fade-in-out {
+    0% {
+        opacity: 0;
+    }
+    20% {
+        opacity: 1;
+    }
+    80% {
+        opacity: 1;
+    }
+    100% {
+        opacity: 0;
+    }
 }
 
 .term_container {
@@ -58,14 +121,90 @@ body {
     color: #444444;
 }
 
+/* Add new color classes for each type */
+.name_function .term_white {
+    color: #f7dd72; /* Yellow for functions */
+}
+
+.name_variable .term_white {
+    color: #ffffff; /* White for variables */
+}
+
+.name_class .term_white {
+    color: #e28eff; /* Pink/purple for CSS classes */
+}
+
 .separator {
     margin-right: 0;
 }
 
+/* Update separator colors to match term colors */
 .separator_white {
     color: #ffffff;
 }
 
+.name_function .separator_white {
+    color: #f7dd72;
+}
+
+.name_variable .separator_white {
+    color: #ffffff;
+}
+
+.name_class .separator_white {
+    color: #e28eff;
+}
+
 .separator_gray {
     color: #444444;
+}
+
+.function_parens {
+    color: #f7dd72; /* Match function color */
+    margin-left: 2px;
+}
+
+/* Filter styles */
+.filter_container {
+    display: flex;
+    gap: 10px;
+    margin-bottom: 15px;
+    justify-content: center;
+}
+
+.filter_button {
+    padding: 6px 12px;
+    border-radius: 4px;
+    border: none;
+    font-size: 14px;
+    cursor: pointer;
+    transition: all 0.2s ease;
+    background-color: #3a3a3a;
+    color: #cccccc;
+}
+
+.filter_button:hover {
+    background-color: #4a4a4a;
+}
+
+#filter_button_function.filter_active {
+    background-color: rgba(247, 221, 114, 0.2);
+    color: #f7dd72;
+    border: 1px solid rgba(247, 221, 114, 0.4);
+}
+
+#filter_button_variable.filter_active {
+    background-color: rgba(255, 255, 255, 0.2);
+    color: #ffffff;
+    border: 1px solid rgba(255, 255, 255, 0.4);
+}
+
+#filter_button_class.filter_active {
+    background-color: rgba(226, 142, 255, 0.2);
+    color: #e28eff;
+    border: 1px solid rgba(226, 142, 255, 0.4);
+}
+
+.name_hidden {
+    display: none;
 } 
