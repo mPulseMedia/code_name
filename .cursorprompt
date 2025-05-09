@@ -1,0 +1,56 @@
+You are helping with the code_name project. 
+
+Please follow these "rules" regarding naming conventions and code appearance strictly:
+
+01. case      : All identifiers in snake_case (variables, functions, CSS, constants, parameters, 
+                file names, event names, properties, element IDs; use user_name not userName)
+
+02. consistent: Use consistent terms throughout the codebase, minimize different terms that 
+                refer to the same thing (ex: item vs element)
+
+03. hierarchy : Structure as objroot_objsub_attr_verb with nouns first, verbs last
+                (ex: user_profile_name_get not get_user_profile_name)
+
+04. root      : Use approved prefixes to organize code by domain:
+                app-specific:
+                - index_   : codename index
+                - name_    : identifiers (functions, variables, classes)
+                - term_    : name components
+                - filter_  : filtering functionality
+                
+                general:
+                - app_     : entire application
+                - dom_     : DOM operations
+
+05. root_new  : Create new roots to keep names under 4 terms long
+                (ex: create user_profile_* root instead of app_user_profile_*)
+
+06. boolean   : End with _is (example: visible_is, active_is, valid_is)
+
+07. plural    : Use singular+_list, never pluralize (name_list NOT names)
+
+08. present   : Use present tense (enable, not enabled)
+
+09. abr       : Abbreviate terms that are long when there is a commonly understood 
+                abbreviation (ex: config, param)
+                acceptable abbreviations:
+                - ele     : element
+                - prev    : previous
+                - str     : string
+                - var     : variable
+                - msg     : message
+
+10. align     : Align symbols (=, :) in sequences for readability if not breaking code
+                (ex: align assignments in related variable declarations)
+
+11. order     : Sort the function names in .js files by their name, alphabetically
+                (ex: group by domain prefix, then alphabetically)
+
+12. compact   : No blank lines between functions, but blank lines within function is ok
+
+13. format    : Maintain consistent formatting in documentation files:
+                - Use 2-digit rule numbers (01, 02, etc.)
+                - Align rule titles at column 13
+                - Align colons at column 18
+                - Indent wrapped lines to align with text (19 spaces)
+                - Indent sublists consistently (add 1 level/19 spaces)

@@ -11,9 +11,26 @@
         <h1 class="app_title">Codename Index</h1>
         <div class="index_container">
             <div class="filter_container">
-                <button id="filter_function" class="filter filter_active">Functions</button>
-                <button id="filter_variable" class="filter filter_active">Variables</button>
-                <button id="filter_class"    class="filter filter_active">CSS Classes</button>
+                <div class="filter_group">
+                    <h3 class="filter_group_title">Identifier Types</h3>
+                    <p class="filter_tip">Click to toggle. Double-click to select only one filter.</p>
+                    <div class="filter_buttons">
+                        <button id="filter_function" class="filter filter_active" title="Click to toggle. Double-click to select only this filter.">Functions</button>
+                        <button id="filter_variable" class="filter filter_active" title="Click to toggle. Double-click to select only this filter.">Variables</button>
+                        <button id="filter_class" class="filter filter_active" title="Click to toggle. Double-click to select only this filter.">CSS Classes</button>
+                        <button id="filter_parameter" class="filter filter_active" title="Click to toggle. Double-click to select only this filter.">Parameters</button>
+                        <button id="filter_constant" class="filter filter_active" title="Click to toggle. Double-click to select only this filter.">Constants</button>
+                        <button id="filter_event" class="filter filter_active" title="Click to toggle. Double-click to select only this filter.">Events</button>
+                        <button id="filter_property" class="filter filter_active" title="Click to toggle. Double-click to select only this filter.">Properties</button>
+                    </div>
+                </div>
+                <div class="search_container">
+                    <input type="text" id="name_search_input" class="name_search_input" placeholder="Search names..." title="Filter names containing this text">
+                    <button id="name_search_clear" class="name_search_clear" title="Clear search">×</button>
+                </div>
+                <div class="filter_actions">
+                    <button id="filter_reset_all" class="filter_action" title="Turn on all filters">Reset All Filters</button>
+                </div>
             </div>
             <ul id="index" class="index"></ul>
         </div>

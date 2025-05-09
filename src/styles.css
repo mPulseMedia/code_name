@@ -31,11 +31,11 @@ body {
 
 .index {
     list-style-type: none;
-    line-height:     1.2;
+    line-height:     1;
 }
 
 .name {
-    padding:            4px 0;
+    padding:            2px 0;
     font-family:        monospace;
     font-size:          14px;
     display:            flex;
@@ -56,6 +56,22 @@ body {
 }
 
 .name_class {
+    /* Color is now only in the text */
+}
+
+.name_parameter {
+    /* Color is now only in the text */
+}
+
+.name_constant {
+    /* Color is now only in the text */
+}
+
+.name_event {
+    /* Color is now only in the text */
+}
+
+.name_property {
     /* Color is now only in the text */
 }
 
@@ -167,9 +183,119 @@ body {
 /* Filter styles */
 .filter_container {
     display:         flex;
+    flex-direction:  column;
+    gap:             15px;
+    margin-bottom:   20px;
+}
+
+.filter_group {
+    display:         flex;
+    flex-direction:  column;
+    gap:             8px;
+}
+
+.filter_group_title {
+    margin:          0;
+    font-size:       14px;
+    color:           #61dafb;
+    text-align:      center;
+}
+
+.filter_tip {
+    margin:          5px 0 8px;
+    font-size:       12px;
+    color:           #999;
+    text-align:      center;
+    font-style:      italic;
+}
+
+.filter_buttons {
+    display:         flex;
     gap:             10px;
-    margin-bottom:   15px;
     justify-content: center;
+    flex-wrap:       wrap;
+}
+
+.filter_actions {
+    display:         flex;
+    justify-content: center;
+    margin-top:      15px;
+}
+
+.search_container {
+    display:         flex;
+    justify-content: center;
+    align-items:     center;
+    margin:          15px 0;
+    position:        relative;
+    width:           100%;
+    max-width:       300px;
+    margin-left:     auto;
+    margin-right:    auto;
+}
+
+.name_search_input {
+    padding:          8px 12px;
+    border-radius:    4px;
+    border:           1px solid #444;
+    font-size:        14px;
+    background-color: #2a2a2a;
+    color:            #fff;
+    width:            100%;
+    transition:       all 0.2s ease;
+}
+
+.name_search_input:focus {
+    outline:    none;
+    border-color: #61dafb;
+    box-shadow: 0 0 0 2px rgba(97, 218, 251, 0.2);
+}
+
+.name_search_input::placeholder {
+    color: #777;
+}
+
+.name_search_clear {
+    position:         absolute;
+    right:            10px;
+    top:              50%;
+    transform:        translateY(-50%);
+    background:       none;
+    border:           none;
+    color:            #777;
+    font-size:        18px;
+    cursor:           pointer;
+    display:          none;
+    padding:          0;
+    width:            20px;
+    height:           20px;
+    line-height:      1;
+    transition:       color 0.2s ease;
+}
+
+.name_search_clear:hover {
+    color: #e74c3c;
+}
+
+.name_search_clear.visible {
+    display: block;
+}
+
+.filter_action {
+    padding:          6px 12px;
+    border-radius:    4px;
+    border:           1px solid #555;
+    font-size:        13px;
+    cursor:           pointer;
+    transition:       all 0.2s ease;
+    background-color: #2a2a2a;
+    color:            #aaa;
+}
+
+.filter_action:hover {
+    background-color: #333;
+    color:            #fff;
+    border-color:     #777;
 }
 
 .filter {
@@ -181,30 +307,174 @@ body {
     transition:       all 0.2s ease;
     background-color: #3a3a3a;
     color:            #cccccc;
+    position:         relative;
+}
+
+.filter::after {
+    content:     "";
+    position:    absolute;
+    bottom:      -2px;
+    left:        50%;
+    width:       0;
+    height:      2px;
+    background:  #555;
+    transform:   translateX(-50%);
+    transition:  width 0.2s ease;
+}
+
+.filter:hover::after {
+    width: 80%;
+}
+
+.filter_active::after {
+    background: currentColor;
+    width:      100%;
 }
 
 .filter:hover {
     background-color: #4a4a4a;
 }
 
+/* Type filter styles */
 #filter_function.filter_active {
     background-color: rgba(247, 221, 114, 0.2);
-    color:            #f7dd72;
+    color:            #f7dd72; /* Yellow */
     border:           1px solid rgba(247, 221, 114, 0.4);
 }
 
 #filter_variable.filter_active {
     background-color: rgba(255, 255, 255, 0.2);
-    color:            #ffffff;
+    color:            #ffffff; /* White */
     border:           1px solid rgba(255, 255, 255, 0.4);
 }
 
 #filter_class.filter_active {
     background-color: rgba(226, 142, 255, 0.2);
-    color:            #e28eff;
+    color:            #e28eff; /* Pink/purple */
     border:           1px solid rgba(226, 142, 255, 0.4);
+}
+
+#filter_parameter.filter_active {
+    background-color: rgba(97, 218, 251, 0.2);
+    color:            #61dafb; /* Light blue */
+    border:           1px solid rgba(97, 218, 251, 0.4);
+}
+
+#filter_constant.filter_active {
+    background-color: rgba(82, 190, 128, 0.2);
+    color:            #52be80; /* Green */
+    border:           1px solid rgba(82, 190, 128, 0.4);
+}
+
+#filter_event.filter_active {
+    background-color: rgba(231, 76, 60, 0.2);
+    color:            #e74c3c; /* Red */
+    border:           1px solid rgba(231, 76, 60, 0.4);
+}
+
+#filter_property.filter_active {
+    background-color: rgba(243, 156, 18, 0.2);
+    color:            #f39c12; /* Orange */
+    border:           1px solid rgba(243, 156, 18, 0.4);
+}
+
+/* Highlighted text colors for identifier types */
+.name_function .term_white {
+    color: #f7dd72; /* Yellow */
+}
+
+.name_variable .term_white {
+    color: #ffffff; /* White */
+}
+
+.name_class .term_white {
+    color: #e28eff; /* Pink/purple */
+}
+
+.name_parameter .term_white {
+    color: #61dafb; /* Light blue */
+}
+
+.name_constant .term_white {
+    color: #52be80; /* Green */
+}
+
+.name_event .term_white {
+    color: #e74c3c; /* Red */
+}
+
+.name_property .term_white {
+    color: #f39c12; /* Orange */
+}
+
+/* Separator colors for identifier types */
+.name_function .separator_white {
+    color: #f7dd72; /* Yellow */
+}
+
+.name_variable .separator_white {
+    color: #ffffff; /* White */
+}
+
+.name_class .separator_white {
+    color: #e28eff; /* Pink/purple */
+}
+
+.name_parameter .separator_white {
+    color: #61dafb; /* Light blue */
+}
+
+.name_constant .separator_white {
+    color: #52be80; /* Green */
+}
+
+.name_event .separator_white {
+    color: #e74c3c; /* Red */
+}
+
+.name_property .separator_white {
+    color: #f39c12; /* Orange */
 }
 
 .name_hidden {
     display: none;
+}
+
+/* Search term highlighting */
+.term_highlight {
+    font-weight: bold;
+    background-color: rgba(255, 255, 0, 0.3);
+    border-radius: 2px;
+    padding: 0 2px;
+    margin: 0 -2px;
+    position: relative;
+    z-index: 1;
+}
+
+.name_function .term_highlight {
+    background-color: rgba(247, 221, 114, 0.3);
+}
+
+.name_variable .term_highlight {
+    background-color: rgba(255, 255, 255, 0.3);
+}
+
+.name_class .term_highlight {
+    background-color: rgba(226, 142, 255, 0.3);
+}
+
+.name_parameter .term_highlight {
+    background-color: rgba(97, 218, 251, 0.3);
+}
+
+.name_constant .term_highlight {
+    background-color: rgba(82, 190, 128, 0.3);
+}
+
+.name_event .term_highlight {
+    background-color: rgba(231, 76, 60, 0.3);
+}
+
+.name_property .term_highlight {
+    background-color: rgba(243, 156, 18, 0.3);
 } 
