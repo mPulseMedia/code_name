@@ -20,127 +20,6 @@ const app_event_listener_setup = () => {
     filter_class_event_add(filter_class);
 };
 
-const filter_function_event_add = (button) => {
-    window.app_function_list['filter_function_event_add'] = filter_function_event_add;
-    
-    button.addEventListener('click', () => {
-        filter_toggle('function');
-    });
-};
-
-const filter_variable_event_add = (button) => {
-    window.app_function_list['filter_variable_event_add'] = filter_variable_event_add;
-    
-    button.addEventListener('click', () => {
-        filter_toggle('variable');
-    });
-};
-
-const filter_class_event_add = (button) => {
-    window.app_function_list['filter_class_event_add'] = filter_class_event_add;
-    
-    button.addEventListener('click', () => {
-        filter_toggle('class');
-    });
-};
-
-const filter_toggle = (filter_type) => {
-    window.app_function_list['filter_toggle'] = filter_toggle;
-    
-    window.filter_state[filter_type] = !window.filter_state[filter_type];
-    
-    const button = document.getElementById(`filter_${filter_type}`);
-    if (window.filter_state[filter_type]) {
-        button.classList.add('filter_active');
-    } else {
-        button.classList.remove('filter_active');
-    }
-    
-    filter_apply();
-};
-
-const filter_apply = () => {
-    window.app_function_list['filter_apply'] = filter_apply;
-    
-    console.log('filter_apply_start', window.filter_state);
-    
-    const index_ele = document.getElementById('index');
-    if (!index_ele) {
-        console.error('index_element_not_found_in_filter_apply');
-        return;
-    }
-    
-    index_ele.innerHTML = '';
-    
-    const name_list = name_list_order_get();
-    console.log('filter_apply_name_list_length', name_list.length);
-    
-    let visible_count = {
-        function: 0,
-        variable: 0,
-        class: 0,
-        total: 0
-    };
-    
-    let term_previous_list   = null;
-    let name_previous_string = null;
-    
-    name_list.forEach(name_string => {
-        const should_use_previous   = name_previous_string && name_filter_visible_is(name_previous_string);
-        const effective_previous_list = should_use_previous ? term_previous_list : null;
-        
-        const { name_ele, term_list } = name_list_dom_render(name_string, effective_previous_list);
-        dom_append(index_ele, name_ele);
-        
-        if (name_filter_visible_is(name_string)) {
-            term_previous_list  = term_list;
-            name_previous_string = name_string;
-            
-            if (window.function_name_list.includes(name_string)) {
-                visible_count.function++;
-            } else if (window.dom_class_names.includes(name_string)) {
-                visible_count.class++;
-            } else {
-                visible_count.variable++;
-            }
-            visible_count.total++;
-        }
-    });
-    
-    const name_function_elements = document.querySelectorAll('.name_function');
-    const name_variable_elements = document.querySelectorAll('.name_variable');
-    const name_class_elements    = document.querySelectorAll('.name_class');
-    
-    name_function_elements.forEach(element => {
-        if (window.filter_state.function) {
-            element.classList.remove('name_hidden');
-        } else {
-            element.classList.add('name_hidden');
-        }
-    });
-    
-    name_variable_elements.forEach(element => {
-        if (window.filter_state.variable) {
-            element.classList.remove('name_hidden');
-        } else {
-            element.classList.add('name_hidden');
-        }
-    });
-    
-    name_class_elements.forEach(element => {
-        if (window.filter_state.class) {
-            element.classList.remove('name_hidden');
-        } else {
-            element.classList.add('name_hidden');
-        }
-    });
-    
-    console.log('filter_apply_complete', {
-        visible: visible_count,
-        filter_state: { ...window.filter_state }
-    });
-};
-
 const app_initialize = () => {
     window.app_function_list['app_initialize'] = app_initialize;
     
@@ -148,7 +27,7 @@ const app_initialize = () => {
     
     app_event_listener_setup();
     
-    name_list_extract();
+    name_list_const_set();
     
     console.log('filter_state_pre_render', window.filter_state);
     
@@ -208,6 +87,127 @@ const dom_text_set = (element, text) => {
     return element;
 };
 
+const filter_apply = () => {
+    window.app_function_list['filter_apply'] = filter_apply;
+    
+    console.log('filter_apply_start', window.filter_state);
+    
+    const index_ele = document.getElementById('index');
+    if (!index_ele) {
+        console.error('index_element_not_found_in_filter_apply');
+        return;
+    }
+    
+    index_ele.innerHTML = '';
+    
+    const name_list = name_list_order_get();
+    console.log('filter_apply_name_list_length', name_list.length);
+    
+    let visible_count = {
+        function: 0,
+        variable: 0,
+        class: 0,
+        total: 0
+    };
+    
+    let term_previous_list   = null;
+    let name_string_previous = null;
+    
+    name_list.forEach(name_string => {
+        const term_previous_use_is   = name_string_previous && name_filter_visible_is(name_string_previous);
+        const term_previous_list_effective = term_previous_use_is ? term_previous_list : null;
+        
+        const { name_ele, term_list } = name_list_dom_render(name_string, term_previous_list_effective);
+        dom_append(index_ele, name_ele);
+        
+        if (name_filter_visible_is(name_string)) {
+            term_previous_list  = term_list;
+            name_string_previous = name_string;
+            
+            if (window.function_name_list.includes(name_string)) {
+                visible_count.function++;
+            } else if (window.dom_class_names.includes(name_string)) {
+                visible_count.class++;
+            } else {
+                visible_count.variable++;
+            }
+            visible_count.total++;
+        }
+    });
+    
+    const name_function_elements = document.querySelectorAll('.name_function');
+    const name_variable_elements = document.querySelectorAll('.name_variable');
+    const name_class_elements    = document.querySelectorAll('.name_class');
+    
+    name_function_elements.forEach(element => {
+        if (window.filter_state.function) {
+            element.classList.remove('name_hidden');
+        } else {
+            element.classList.add('name_hidden');
+        }
+    });
+    
+    name_variable_elements.forEach(element => {
+        if (window.filter_state.variable) {
+            element.classList.remove('name_hidden');
+        } else {
+            element.classList.add('name_hidden');
+        }
+    });
+    
+    name_class_elements.forEach(element => {
+        if (window.filter_state.class) {
+            element.classList.remove('name_hidden');
+        } else {
+            element.classList.add('name_hidden');
+        }
+    });
+    
+    console.log('filter_apply_complete', {
+        visible: visible_count,
+        filter_state: { ...window.filter_state }
+    });
+};
+
+const filter_class_event_add = (button) => {
+    window.app_function_list['filter_class_event_add'] = filter_class_event_add;
+    
+    button.addEventListener('click', () => {
+        filter_toggle('class');
+    });
+};
+
+const filter_function_event_add = (button) => {
+    window.app_function_list['filter_function_event_add'] = filter_function_event_add;
+    
+    button.addEventListener('click', () => {
+        filter_toggle('function');
+    });
+};
+
+const filter_toggle = (filter_type) => {
+    window.app_function_list['filter_toggle'] = filter_toggle;
+    
+    window.filter_state[filter_type] = !window.filter_state[filter_type];
+    
+    const button = document.getElementById(`filter_${filter_type}`);
+    if (window.filter_state[filter_type]) {
+        button.classList.add('filter_active');
+    } else {
+        button.classList.remove('filter_active');
+    }
+    
+    filter_apply();
+};
+
+const filter_variable_event_add = (button) => {
+    window.app_function_list['filter_variable_event_add'] = filter_variable_event_add;
+    
+    button.addEventListener('click', () => {
+        filter_toggle('variable');
+    });
+};
+
 const index_dom_render = () => {
     window.app_function_list['index_dom_render'] = index_dom_render;
     
@@ -231,6 +231,46 @@ const index_dom_render = () => {
     
     console.log('applying_filters_during_render');
     filter_apply();
+};
+
+const name_filter_visible_is = (name_string) => {
+    window.app_function_list['name_filter_visible_is'] = name_filter_visible_is;
+    
+    if (!window.filter_state) {
+        console.error('filter_state_missing');
+        window.filter_state = {
+            function: true,
+            variable: true,
+            class: true
+        };
+    }
+    
+    if (!name_string) {
+        console.warn('name_string_empty');
+        return true;
+    }
+    
+    const name_type_function = Array.isArray(window.function_name_list) && window.function_name_list.includes(name_string);
+    const name_type_class    = Array.isArray(window.dom_class_names) && window.dom_class_names.includes(name_string);
+    const name_type_variable = !name_type_function && !name_type_class;
+    
+    if (name_string.startsWith('app_')) {
+        console.log('visibility_check', {
+            name: name_string,
+            function_is: name_type_function,
+            class_is: name_type_class,
+            variable_is: name_type_variable,
+            filter_state: { ...window.filter_state }
+        });
+    }
+    
+    if (name_type_function) {
+        return !!window.filter_state.function;
+    } else if (name_type_class) {
+        return !!window.filter_state.class;
+    } else {
+        return !!window.filter_state.variable;
+    }
 };
 
 const name_list_dom_render = (name_string, term_previous_list = null) => {
@@ -298,7 +338,7 @@ const name_list_dom_render = (name_string, term_previous_list = null) => {
     
     if (name_type_function) {
         const parens = dom_create('span');
-        dom_class_add(parens, 'function_parens');
+        dom_class_add(parens, 'name_function_parens');
         dom_text_set(parens, '()');
         dom_append(term_dom_container, parens);
     }
@@ -306,8 +346,8 @@ const name_list_dom_render = (name_string, term_previous_list = null) => {
     return { name_ele: name_div, term_list };
 };
 
-const name_list_extract = () => {
-    window.app_function_list['name_list_extract'] = name_list_extract;
+const name_list_const_set = () => {
+    window.app_function_list['name_list_const_set'] = name_list_const_set;
     
     console.log('name_list_extract_start');
     
@@ -327,7 +367,7 @@ const name_list_extract = () => {
         'index_dom_render',
         'name_filter_visible_is',
         'name_list_dom_render',
-        'name_list_extract',
+        'name_list_const_set',
         'name_list_get',
         'name_list_order_get',
         'string_by_separator_split',
@@ -344,7 +384,7 @@ const name_list_extract = () => {
         'child',
         'class_is',
         'class_name',
-        'current_term_match_is',
+        'term_current_match',
         'debug_enabled_is',
         'debug_name_is',
         'dom_class_names',
@@ -377,7 +417,7 @@ const name_list_extract = () => {
         'term_ele',
         'term_list',
         'term_list_same_is',
-        'term_previous_all_match_is',
+        'term_previous_match_all',
         'term_previous_list',
         'term_same_is',
         'term_style_string',
@@ -396,7 +436,7 @@ const name_list_extract = () => {
         'filter',
         'filter_active',
         'filter_container',
-        'function_parens',
+        'name_function_parens',
         'index',
         'index_container',
         'name',
@@ -442,7 +482,7 @@ const name_list_get = () => {
         return [...window.function_name_list, ...Object.keys(window.app_variable_list), ...window.dom_class_names];
     }
     
-    return name_list_extract();
+    return name_list_const_set();
 };
 
 const name_list_order_get = () => {
@@ -474,22 +514,22 @@ const term_list_compare = (term_list, term_previous_list) => {
         });
     }
     
-    let term_previous_all_match_is = true;
+    let term_previous_match_all = true;
     
     const result = term_list.map((term, index) => {
-        if (!term_previous_all_match_is) return false;
+        if (!term_previous_match_all) return false;
         
-        const current_term_match_is = index < term_previous_list.length && term_previous_list[index] === term;
+        const term_current_match = index < term_previous_list.length && term_previous_list[index] === term;
         
-        if (!current_term_match_is) {
-            term_previous_all_match_is = false;
+        if (!term_current_match) {
+            term_previous_match_all = false;
         }
         
         if (debug_enabled_is && debug_name_is) {
-            console.log(`Term ${index}: "${term}" ${current_term_match_is ? 'matches' : 'differs'}, term_previous_all_match_is=${term_previous_all_match_is}`);
+            console.log(`Term ${index}: "${term}" ${term_current_match ? 'matches' : 'differs'}, term_previous_match_all=${term_previous_match_all}`);
         }
         
-        return current_term_match_is;
+        return term_current_match;
     });
     
     if (debug_enabled_is && debug_name_is) {
@@ -511,46 +551,6 @@ const term_style_get = (term_same_is) => {
     return term_same_is ? 'gray' : 'white';
 };
 
-const name_filter_visible_is = (name_string) => {
-    window.app_function_list['name_filter_visible_is'] = name_filter_visible_is;
-    
-    if (!window.filter_state) {
-        console.error('filter_state_missing');
-        window.filter_state = {
-            function: true,
-            variable: true,
-            class: true
-        };
-    }
-    
-    if (!name_string) {
-        console.warn('name_string_empty');
-        return true;
-    }
-    
-    const name_type_function = Array.isArray(window.function_name_list) && window.function_name_list.includes(name_string);
-    const name_type_class    = Array.isArray(window.dom_class_names) && window.dom_class_names.includes(name_string);
-    const name_type_variable = !name_type_function && !name_type_class;
-    
-    if (name_string.startsWith('app_')) {
-        console.log('visibility_check', {
-            name: name_string,
-            function_is: name_type_function,
-            class_is: name_type_class,
-            variable_is: name_type_variable,
-            filter_state: { ...window.filter_state }
-        });
-    }
-    
-    if (name_type_function) {
-        return !!window.filter_state.function;
-    } else if (name_type_class) {
-        return !!window.filter_state.class;
-    } else {
-        return !!window.filter_state.variable;
-    }
-};
-
 document.addEventListener('DOMContentLoaded', () => {
     console.log('dom_content_loaded');
     
@@ -562,15 +562,15 @@ document.addEventListener('DOMContentLoaded', () => {
     console.log('function_list_post_init', Object.keys(window.app_function_list));
     console.log('variable_list_post_init', Object.keys(window.app_variable_list));
     
-    window.getAllFunctionNames = () => {
+    window.app_function_list_obj = () => {
         return Object.keys(window.app_function_list);
     };
     
-    window.getAllVariableNames = () => {
+    window.app_variable_list_obj = () => {
         return Object.keys(window.app_variable_list);
     };
     
-    window.getAllNames = () => {
+    window.app_name_list_obj = () => {
         return [...Object.keys(window.app_function_list), ...Object.keys(window.app_variable_list)];
     };
 });

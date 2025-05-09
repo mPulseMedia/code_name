@@ -159,7 +159,7 @@ body {
     color: #444444;
 }
 
-.function_parens {
+.name_function_parens {
     color: #f7dd72; /* Match function color */
     margin-left: 2px;
 }
