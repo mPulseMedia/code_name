@@ -16,13 +16,15 @@ Please follow these "rules" regarding naming conventions and code appearance str
                 - index_   : codename index
                 - name_    : identifiers (functions, variables, classes)
                 - term_    : name components
+                - root_    : the first term of a name
                 - filter_  : filtering functionality
                 
                 general:
                 - app_     : entire application
                 - dom_     : DOM operations
 
-05. root_new  : Create new roots to keep names under 4 terms long
+05. root_new  : root terms are by definition the terms that start a name
+                Create new roots to keep names under 4 terms long
                 (ex: create user_profile_* root instead of app_user_profile_*)
 
 06. boolean   : End with _is (example: visible_is, active_is, valid_is)
@@ -46,7 +48,8 @@ Please follow these "rules" regarding naming conventions and code appearance str
 11. order     : Sort the function names in .js files by their name, alphabetically
                 (ex: group by domain prefix, then alphabetically)
 
-12. compact   : No blank lines between functions, but blank lines within function is ok
+12. compact   : In js files, no blank lines between functions, but blank lines within function is ok.
+              : In css files, no blank spaces between class definitions.
 
 13. format    : Maintain consistent formatting in documentation files:
                 - Use 2-digit rule numbers (01, 02, etc.)

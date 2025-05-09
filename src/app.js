@@ -17,8 +17,11 @@ window.filter_state       = {
     property_is  : true,
     
     // Search filter
-    search_text  : ''
+    search_filter_text  : ''
 };
+
+// Track expanded state of root terms
+window.root_expanded_state = {};
 
 // App functions
 const app_event_listener_setup = () => {
@@ -56,7 +59,7 @@ const app_event_listener_setup = () => {
     // Set up search input event listeners
     if (name_search_input_element) {
         name_search_input_element.addEventListener('input', () => {
-            name_search_apply(name_search_input_element.value);
+            search_filter_apply(name_search_input_element.value);
             
             // Show/hide the clear button based on input
             if (name_search_input_element.value.length > 0) {
@@ -70,7 +73,7 @@ const app_event_listener_setup = () => {
         name_search_input_element.addEventListener('keydown', (event) => {
             if (event.key === 'Enter') {
                 event.preventDefault();
-                name_search_apply(name_search_input_element.value);
+                search_filter_apply(name_search_input_element.value);
             }
         });
     }
@@ -80,26 +83,22 @@ const app_event_listener_setup = () => {
         name_search_clear_element.addEventListener('click', () => {
             name_search_input_element.value = '';
             name_search_clear_element.classList.remove('visible');
-            name_search_apply('');
+            search_filter_apply('');
         });
     }
 };
 const app_init = () => {
     window.app_function_list['app_init'] = app_init;
-    console.log('app_init_start');
     
     app_event_listener_setup();
     name_list_const_set();
     
-    console.log('filter_state_pre_render', window.filter_state);
-    
-    index_dom_render();
+    // Make sure all filters are active and index is populated on initial load
+    filter_all_reset();
     
     setTimeout(() => {
         filter_count_visible_check();
     }, 100);
-    
-    console.log('filter_state_initial', window.filter_state);
 };
 
 // Array functions
@@ -139,8 +138,8 @@ const filter_all_reset = () => {
     
     // Turn on all filters
     for (const filter_type in window.filter_state) {
-        // Skip search_text, handle it separately
-        if (filter_type === 'search_text') continue;
+        // Skip search_filter_text, handle it separately
+        if (filter_type === 'search_filter_text') continue;
         
         window.filter_state[filter_type] = true;
         
@@ -153,7 +152,7 @@ const filter_all_reset = () => {
     }
     
     // Clear search text
-    window.filter_state.search_text = '';
+    window.filter_state.search_filter_text = '';
     const name_search_input_element = document.getElementById('name_search_input');
     const name_search_clear_element = document.getElementById('name_search_clear');
     
@@ -167,24 +166,33 @@ const filter_all_reset = () => {
     
     // Apply the filter
     filter_name_apply();
+    
+    // After filter is applied, close all expanded root items
+    const expanded_carets = document.querySelectorAll('.root_term_caret.expanded');
+    const expanded_contents = document.querySelectorAll('.root_term_content.expanded');
+    
+    // Remove expanded class from carets and set text to closed state
+    expanded_carets.forEach(caret => {
+        root_toggle(caret);
+    });
+    
+    // Remove expanded class from content elements
+    expanded_contents.forEach(content => {
+        content.classList.remove('expanded');
+    });
+    
+    // Clear all saved expanded states
+    window.root_expanded_state = {};
 };
 const filter_count_visible_check = () => {
     window.app_function_list['filter_count_visible_check'] = filter_count_visible_check;
-    console.log('filter_post_render_check');
     
     const name_visible_count = document.querySelectorAll('.name:not(.name_hidden)').length;
     const name_total_count   = document.querySelectorAll('.name').length;
     
-    console.log('visible_check', {
-        visible      : name_visible_count,
-        total        : name_total_count,
-        filter_state : { ...window.filter_state }
-    });
-    
     const visible_issue_is = name_visible_count === 0 && name_total_count > 0;
     
     if (visible_issue_is) {
-        console.log('filter_visible_issue_fix');
         filter_name_apply();
     }
 };
@@ -193,8 +201,8 @@ const filter_exclusive_set = (active_filter_type) => {
     
     // Turn off all filters
     for (const filter_type in window.filter_state) {
-        // Skip search_text, don't change it
-        if (filter_type === 'search_text') continue;
+        // Skip search_filter_text, don't change it
+        if (filter_type === 'search_filter_text') continue;
         
         window.filter_state[filter_type] = false;
         
@@ -221,18 +229,15 @@ const filter_exclusive_set = (active_filter_type) => {
 };
 const filter_name_apply = () => {
     window.app_function_list['filter_name_apply'] = filter_name_apply;
-    console.log('filter_apply_start', window.filter_state);
     
     const index_element = document.getElementById('index');
     if (!index_element) {
-        console.error('index_element_not_found_in_filter_apply');
         return;
     }
     
     index_element.innerHTML = '';
     
     const name_list = name_list_order_get();
-    console.log('filter_apply_name_list_length', name_list.length);
     
     let name_count = {
         function_is  : 0,
@@ -245,25 +250,22 @@ const filter_name_apply = () => {
         count_total  : 0
     };
     
-    let term_previous_list   = null;
-    let name_string_previous = null;
-    
     // First filter the name list based on the search filter
     const filtered_name_list = name_list.filter(name_string => {
         return name_filter_visible_is(name_string);
     });
     
-    // Then render only the filtered names
+    // Group names by root term
+    const root_group_map = {};
+    
     filtered_name_list.forEach(name_string => {
-        const term_previous_use_is         = name_string_previous !== null;
-        const term_previous_list_effective = term_previous_use_is ? term_previous_list : null;
+        const root_name = root_extract(name_string);
         
-        const { name_element, term_list } = name_list_dom_render(name_string, term_previous_list_effective);
-        dom_element_append(index_element, name_element);
+        if (!root_group_map[root_name]) {
+            root_group_map[root_name] = [];
+        }
         
-        // Update the previous terms and name for the next iteration
-        term_previous_list   = term_list;
-        name_string_previous = name_string;
+        root_group_map[root_name].push(name_string);
         
         // Count the visible names by type
         if (window.function_name_list.includes(name_string)) {
@@ -284,74 +286,77 @@ const filter_name_apply = () => {
         name_count.count_total++;
     });
     
-    // Update visibility for each type of identifier
-    const name_function_element_list  = document.querySelectorAll('.name_function');
-    const name_variable_element_list  = document.querySelectorAll('.name_variable');
-    const name_class_element_list     = document.querySelectorAll('.name_class');
-    const name_parameter_element_list = document.querySelectorAll('.name_parameter');
-    const name_constant_element_list  = document.querySelectorAll('.name_constant');
-    const name_event_element_list     = document.querySelectorAll('.name_event');
-    const name_property_element_list  = document.querySelectorAll('.name_property');
-    
-    name_function_element_list.forEach(element => {
-        if (window.filter_state.function_is) {
-            element.classList.remove('name_hidden');
-        } else {
-            element.classList.add('name_hidden');
-        }
-    });
-    
-    name_variable_element_list.forEach(element => {
-        if (window.filter_state.variable_is) {
-            element.classList.remove('name_hidden');
-        } else {
-            element.classList.add('name_hidden');
-        }
-    });
-    
-    name_class_element_list.forEach(element => {
-        if (window.filter_state.class_is) {
-            element.classList.remove('name_hidden');
-        } else {
-            element.classList.add('name_hidden');
-        }
-    });
-    
-    name_parameter_element_list.forEach(element => {
-        if (window.filter_state.parameter_is) {
-            element.classList.remove('name_hidden');
-        } else {
-            element.classList.add('name_hidden');
-        }
-    });
-    
-    name_constant_element_list.forEach(element => {
-        if (window.filter_state.constant_is) {
-            element.classList.remove('name_hidden');
-        } else {
-            element.classList.add('name_hidden');
-        }
-    });
-    
-    name_event_element_list.forEach(element => {
-        if (window.filter_state.event_is) {
-            element.classList.remove('name_hidden');
-        } else {
-            element.classList.add('name_hidden');
-        }
-    });
-    
-    name_property_element_list.forEach(element => {
-        if (window.filter_state.property_is) {
-            element.classList.remove('name_hidden');
-        } else {
-            element.classList.add('name_hidden');
-        }
-    });
-    
-    console.log('filter_apply_complete', {
-        visible      : name_count,
-        filter_state : { ...window.filter_state }
+    // Render each root term group
+    Object.keys(root_group_map).sort((a, b) => {
+        return a.toLowerCase().localeCompare(b.toLowerCase());
+    }).forEach(root_name => {
+        const names_in_group = root_group_map[root_name];
+        const group_element = root_group_create(root_name, names_in_group, index_element);
+        
+        // Update visibility for each type of identifier
+        const name_function_element_list  = document.querySelectorAll('.name_function');
+        const name_variable_element_list  = document.querySelectorAll('.name_variable');
+        const name_class_element_list     = document.querySelectorAll('.name_class');
+        const name_parameter_element_list = document.querySelectorAll('.name_parameter');
+        const name_constant_element_list  = document.querySelectorAll('.name_constant');
+        const name_event_element_list     = document.querySelectorAll('.name_event');
+        const name_property_element_list  = document.querySelectorAll('.name_property');
+        
+        name_function_element_list.forEach(element => {
+            if (window.filter_state.function_is) {
+                element.classList.remove('name_hidden');
+            } else {
+                element.classList.add('name_hidden');
+            }
+        });
+        
+        name_variable_element_list.forEach(element => {
+            if (window.filter_state.variable_is) {
+                element.classList.remove('name_hidden');
+            } else {
+                element.classList.add('name_hidden');
+            }
+        });
+        
+        name_class_element_list.forEach(element => {
+            if (window.filter_state.class_is) {
+                element.classList.remove('name_hidden');
+            } else {
+                element.classList.add('name_hidden');
+            }
+        });
+        
+        name_parameter_element_list.forEach(element => {
+            if (window.filter_state.parameter_is) {
+                element.classList.remove('name_hidden');
+            } else {
+                element.classList.add('name_hidden');
+            }
+        });
+        
+        name_constant_element_list.forEach(element => {
+            if (window.filter_state.constant_is) {
+                element.classList.remove('name_hidden');
+            } else {
+                element.classList.add('name_hidden');
+            }
+        });
+        
+        name_event_element_list.forEach(element => {
+            if (window.filter_state.event_is) {
+                element.classList.remove('name_hidden');
+            } else {
+                element.classList.add('name_hidden');
+            }
+        });
+        
+        name_property_element_list.forEach(element => {
+            if (window.filter_state.property_is) {
+                element.classList.remove('name_hidden');
+            } else {
+                element.classList.add('name_hidden');
+            }
+        });
     });
 };
 const filter_state_toggle = (filter_type) => {
@@ -437,7 +442,6 @@ const name_filter_visible_is = (name_string) => {
     window.app_function_list['name_filter_visible_is'] = name_filter_visible_is;
     
     if (!name_string) {
-        console.log('name_filter_check_empty_string');
         return false;
     }
     
@@ -484,20 +488,31 @@ const name_filter_visible_is = (name_string) => {
     }
     
     // Check search text filter (case insensitive)
-    if (window.filter_state.search_text && window.filter_state.search_text.length > 0) {
+    if (window.filter_state.search_filter_text && window.filter_state.search_filter_text.length > 0) {
         const name_lower = name_string.toLowerCase();
-        const search_lower = window.filter_state.search_text.toLowerCase();
-        if (!name_lower.includes(search_lower)) {
-            return false;
+        const search_lower = window.filter_state.search_filter_text.toLowerCase();
+        
+        // First check if the full name contains the search text
+        if (name_lower.includes(search_lower)) {
+            return true;
         }
+        
+        // If not found in full name, check individual terms
+        const terms = term_list_extract(name_string);
+        for (let i = 0; i < terms.length; i++) {
+            if (terms[i].toLowerCase().includes(search_lower)) {
+                return true;
+            }
+        }
+        
+        // No matches found
+        return false;
     }
     
     return true;
 };
 const name_list_const_set = () => {
     window.app_function_list['name_list_const_set'] = name_list_const_set;
-    
-    console.log('name_list_extract_start');
     
     const function_names = [
         'app_event_listener_setup',
@@ -522,7 +537,14 @@ const name_list_const_set = () => {
         'name_list_dom_render',
         'name_list_get',
         'name_list_order_get',
-        'name_search_apply',
+        'root_toggle',
+        'root_content_create',
+        'root_extract',
+        'root_group_create',
+        'root_header_create',
+        'root_connect',
+        'root_type_determine',
+        'search_filter_apply',
         'string_by_separator_split',
         'term_list_compare',
         'term_list_extract',
@@ -541,8 +563,6 @@ const name_list_const_set = () => {
         'class_is',
         'class_name',
         'count_total',
-        'debug_enabled_is',
-        'debug_name_is',
         'dom_class_name_list',
         'element_tag',
         'filter_class_element',
@@ -577,8 +597,11 @@ const name_list_const_set = () => {
         'parent_element',
         'parens_element',
         'result',
+        'root_expanded_state',
+        'root_group_map',
+        'root_name',
+        'search_filter_text',
         'search_lower',
-        'search_text',
         'separator',
         'separator_element',
         'string',
@@ -650,7 +673,6 @@ const name_list_const_set = () => {
     ];
     
     const constant_names = [
-        'DEBUG_MODE_IS',
         'DEFAULT_TIMEOUT_MS',
         'MAX_NAME_LENGTH',
         'MIN_TERM_LENGTH',
@@ -683,14 +705,8 @@ const name_list_const_set = () => {
     window.event_name_list = event_names;
     window.property_name_list = property_names;
     
-    console.log('name_list_extract_counts', {
-        functions  : window.function_name_list.length,
-        classes    : window.dom_class_name_list.length,
-        parameters : window.parameter_name_list.length,
-        constants  : window.constant_name_list.length,
-        events     : window.event_name_list.length,
-        properties : window.property_name_list.length,
-        variables  : Object.keys(window.app_variable_list).length
+    variable_names.forEach(name => {
+        window.app_variable_list[name] = name;
     });
     
     const name_type_list_set = [
@@ -702,10 +718,6 @@ const name_list_const_set = () => {
         ...event_names,
         ...property_names
     ];
-    
-    variable_names.forEach(name => {
-        window.app_variable_list[name] = name;
-    });
     
     return name_type_list_set;
 };
@@ -760,10 +772,6 @@ const name_list_dom_render = (name_string, term_previous_list = null) => {
     const term_container_element = dom_element_create('div');
     dom_element_class_add(term_container_element, 'term_container');
     
-    // Check if there's a search filter active
-    const search_active_is = window.filter_state.search_text && window.filter_state.search_text.length > 0;
-    const search_text_lower = search_active_is ? window.filter_state.search_text.toLowerCase() : '';
-    
     term_list.forEach((term, index) => {
         // Add term element
         const term_same_is = term_list_same_is[index];
@@ -772,43 +780,7 @@ const name_list_dom_render = (name_string, term_previous_list = null) => {
         const term_element = dom_element_create('span');
         dom_element_class_add(term_element, 'term');
         dom_element_class_add(term_element, term_style_class_name);
-        
-        // Check if this term contains the search text
-        if (search_active_is && term.toLowerCase().includes(search_text_lower)) {
-            // Highlight the matching part
-            const term_lower = term.toLowerCase();
-            const match_index = term_lower.indexOf(search_text_lower);
-            const match_end = match_index + search_text_lower.length;
-            
-            // Create wrapper to hold text parts
-            const term_wrapper = document.createDocumentFragment();
-            
-            // Add text before match
-            if (match_index > 0) {
-                const before_match = dom_element_create('span');
-                dom_element_text_set(before_match, term.substring(0, match_index));
-                term_wrapper.appendChild(before_match);
-            }
-            
-            // Add highlighted match
-            const highlight = dom_element_create('span');
-            dom_element_class_add(highlight, 'term_highlight');
-            dom_element_text_set(highlight, term.substring(match_index, match_end));
-            term_wrapper.appendChild(highlight);
-            
-            // Add text after match
-            if (match_end < term.length) {
-                const after_match = dom_element_create('span');
-                dom_element_text_set(after_match, term.substring(match_end));
-                term_wrapper.appendChild(after_match);
-            }
-            
-            term_element.appendChild(term_wrapper);
-        } else {
-            // No match, just set the text
-            dom_element_text_set(term_element, term);
-        }
-        
+        dom_element_text_set(term_element, term);
         dom_element_append(term_container_element, term_element);
         
         // Add separator if not the last term
@@ -839,10 +811,7 @@ const name_list_dom_render = (name_string, term_previous_list = null) => {
 const name_list_get = () => {
     window.app_function_list['name_list_get'] = name_list_get;
     
-    console.log('name_list_get_start');
-    
     if (window.function_name_list.length > 0) {
-        console.log('using_existing_name_list', window.function_name_list.length);
         return [
             ...window.function_name_list,
             ...Object.keys(window.app_variable_list),
@@ -859,15 +828,14 @@ const name_list_get = () => {
 const name_list_order_get = () => {
     window.app_function_list['name_list_order_get'] = name_list_order_get;
     
-    console.log('name_list_order_get_start');
     const name_list = name_list_get();
     return array_sort_alphabetically(name_list);
 };
-const name_search_apply = (search_text) => {
-    window.app_function_list['name_search_apply'] = name_search_apply;
+const search_filter_apply = (search_text) => {
+    window.app_function_list['search_filter_apply'] = search_filter_apply;
     
     // Update the filter state with the new search text
-    window.filter_state.search_text = search_text;
+    window.filter_state.search_filter_text = search_text;
     
     // Re-apply the filter to show only matching names
     filter_name_apply();
@@ -886,16 +854,6 @@ const term_list_compare = (term_list, term_previous_list) => {
     
     if (!term_previous_list) return term_list.map(() => false);
     
-    const debug_enabled_is = false;
-    const debug_name_is = term_list.join('_').includes('dom_element_append');
-    
-    if (debug_enabled_is && debug_name_is) {
-        console.log('Term comparison:', {
-            current: term_list.join('_'),
-            previous: term_previous_list.join('_')
-        });
-    }
-    
     let term_previous_match_all = true;
     
     const result = term_list.map((term, index) => {
@@ -907,16 +865,8 @@ const term_list_compare = (term_list, term_previous_list) => {
             term_previous_match_all = false;
         }
         
-        if (debug_enabled_is && debug_name_is) {
-            console.log(`Term ${index}: "${term}" ${term_current_match ? 'matches' : 'differs'}, term_previous_match_all=${term_previous_match_all}`);
-        }
-        
         return term_current_match;
     });
-    
-    if (debug_enabled_is && debug_name_is) {
-        console.log('Result:', result);
-    }
     
     return result;
 };
@@ -933,3 +883,168 @@ const term_style_get = (term_same_is) => {
 
 // Execute the app
 document.addEventListener('DOMContentLoaded', app_init);
+
+// Root functions
+const root_extract = (name_string) => {
+    window.app_function_list['root_extract'] = root_extract;
+    const term_list = term_list_extract(name_string);
+    return term_list[0]; // The first term is the root
+};
+
+const root_group_create = (root_name, names_in_group, index_element) => {
+    window.app_function_list['root_group_create'] = root_group_create;
+    
+    if (names_in_group.length === 0) return null;
+    
+    // Sort the names in the group case-insensitively
+    names_in_group.sort((a, b) => {
+        return a.toLowerCase().localeCompare(b.toLowerCase());
+    });
+    
+    // Determine the predominant type for styling
+    let predominant_type = root_type_determine(names_in_group);
+    
+    // Create the root term group container
+    const group_element = dom_element_create('div');
+    dom_element_class_add(group_element, 'root_term_group');
+    
+    // Create header with contents
+    const header_element = root_header_create(root_name, predominant_type);
+    
+    // Create content container for names
+    const content_element = root_content_create(names_in_group);
+    
+    // Connect header click to toggle content visibility
+    root_connect(header_element, content_element, root_name);
+    
+    // Add the group to the index
+    dom_element_append(group_element, header_element);
+    dom_element_append(group_element, content_element);
+    dom_element_append(index_element, group_element);
+    
+    return group_element;
+};
+
+const root_header_create = (root_name, predominant_type) => {
+    window.app_function_list['root_header_create'] = root_header_create;
+    
+    const header_element = dom_element_create('div');
+    dom_element_class_add(header_element, 'root_term_header');
+    dom_element_class_add(header_element, `root_term_${predominant_type}`);
+    
+    const caret_element = dom_element_create('span');
+    dom_element_class_add(caret_element, 'root_term_caret');
+    dom_element_text_set(caret_element, '▶');
+    dom_element_append(header_element, caret_element);
+    
+    // For a more consistent look with regular names, add a term container
+    const term_container_element = dom_element_create('div');
+    dom_element_class_add(term_container_element, 'term_container');
+    
+    // Modify how we create the text element for root terms
+    const text_element = dom_element_create('span');
+    dom_element_class_add(text_element, 'root_term_text');
+    dom_element_text_set(text_element, root_name);
+    dom_element_append(term_container_element, text_element);
+    
+    dom_element_append(header_element, term_container_element);
+    
+    return header_element;
+};
+
+const root_content_create = (names_in_group) => {
+    window.app_function_list['root_content_create'] = root_content_create;
+    
+    const content_element = dom_element_create('div');
+    dom_element_class_add(content_element, 'root_term_content');
+    
+    // Add the names to the content container
+    let term_previous_list = null;
+    let name_string_previous = null;
+    
+    names_in_group.forEach(name_string => {
+        const term_previous_use_is = name_string_previous !== null;
+        const term_previous_list_effective = term_previous_use_is ? term_previous_list : null;
+        
+        const { name_element, term_list } = name_list_dom_render(name_string, term_previous_list_effective);
+        dom_element_append(content_element, name_element);
+        
+        // Update the previous terms and name for the next iteration
+        term_previous_list = term_list;
+        name_string_previous = name_string;
+    });
+    
+    return content_element;
+};
+
+const root_connect = (header_element, content_element, root_name) => {
+    window.app_function_list['root_connect'] = root_connect;
+    
+    const caret_element = header_element.querySelector('.root_term_caret');
+    if (!caret_element) return;
+    
+    // Apply saved expanded state if it exists
+    if (window.root_expanded_state[root_name]) {
+        caret_element.classList.add('expanded');
+        dom_element_text_set(caret_element, '▼');
+        content_element.classList.add('expanded');
+    }
+    
+    // Add click event to toggle the group
+    header_element.addEventListener('click', () => {
+        const isExpanded = root_toggle(caret_element);
+        content_element.classList.toggle('expanded');
+        
+        // Save the expanded state for this root term
+        window.root_expanded_state[root_name] = isExpanded;
+    });
+};
+
+const root_toggle = (caret_element) => {
+    window.app_function_list['root_toggle'] = root_toggle;
+    
+    const isExpanded = caret_element.classList.toggle('expanded');
+    if (isExpanded) {
+        dom_element_text_set(caret_element, '▼');
+    } else {
+        dom_element_text_set(caret_element, '▶');
+    }
+    return isExpanded;
+};
+
+const root_type_determine = (names_in_group) => {
+    window.app_function_list['root_type_determine'] = root_type_determine;
+    
+    const type_counts = {
+        function: 0,
+        variable: 0,
+        class: 0,
+        parameter: 0,
+        constant: 0,
+        event: 0,
+        property: 0
+    };
+    
+    names_in_group.forEach(name => {
+        if (window.function_name_list.includes(name)) type_counts.function++;
+        else if (window.dom_class_name_list.includes(name)) type_counts.class++;
+        else if (window.parameter_name_list.includes(name)) type_counts.parameter++;
+        else if (window.constant_name_list.includes(name)) type_counts.constant++;
+        else if (window.event_name_list.includes(name)) type_counts.event++;
+        else if (window.property_name_list.includes(name)) type_counts.property++;
+        else type_counts.variable++;
+    });
+    
+    // Find the type with highest count
+    let max_count = 0;
+    let predominant_type = 'variable'; // Default
+    
+    Object.entries(type_counts).forEach(([type, count]) => {
+        if (count > max_count) {
+            max_count = count;
+            predominant_type = type;
+        }
+    });
+    
+    return predominant_type;
+};
