@@ -30,8 +30,8 @@ body {
 }
 .name, 
 .root_term_header {
-    padding:          4px 0;
-    margin:           3px 0;
+    padding:          6px 0;
+    margin:           2px 0;
     font-family:      monospace;
     font-size:        14px;
     display:          flex;
@@ -65,6 +65,9 @@ body {
 }
 .name_property {
     color:             #f39c12;
+}
+.name_file {
+    color:             #2ecc71;
 }
 .name:hover {
     background-color:  #3a3a3a;
@@ -140,6 +143,9 @@ body {
 .name_property .term_white {
     color:             #f39c12;
 }
+.name_file .term_white {
+    color:             #2ecc71;
+}
 .separator {
     margin-right:      0;
 }
@@ -167,12 +173,11 @@ body {
 .name_property .separator_white {
     color:             #f39c12;
 }
+.name_file .separator_white {
+    color:             #2ecc71;
+}
 .separator_gray {
     color:             #444444;
-}
-.name_function_parens {
-    color:             #f7dd72;
-    margin-left:       2px;
 }
 .filter_container {
     display:           flex;
@@ -265,11 +270,14 @@ body {
     padding:          6px 12px;
     border-radius:    4px;
     border:           1px solid #555;
-    font-size:        13px;
+    font-size:        15px;
     cursor:           pointer;
     transition:       all 0.2s ease;
     background-color: #2a2a2a;
     color:            #aaa;
+    line-height:      1;
+    min-width:        36px;
+    text-align:       center;
 }
 .filter_action:hover {
     background-color: #333;
@@ -326,10 +334,14 @@ body {
 #filter_property {
     color:            #f39c12;
 }
+#filter_file {
+    color:            #2ecc71;
+}
 #filter_reset_all {
     color:            #cccccc;
     background-color: rgba(102, 102, 102, 0.2);
     border:           1px solid rgba(204, 204, 204, 0.5);
+    margin-left:      auto;
 }
 #filter_function.filter_active {
     background-color: rgba(247, 221, 114, 0.2);
@@ -358,6 +370,10 @@ body {
 #filter_property.filter_active {
     background-color: rgba(243, 156, 18, 0.2);
     border:           1px solid #f39c12;
+}
+#filter_file.filter_active {
+    background-color: rgba(46, 204, 113, 0.2);
+    border:           1px solid #2ecc71;
 }
 .name_hidden {
     display:          none;
@@ -422,6 +438,37 @@ body {
     position:         relative;
 }
 
+/* Style for hiding the root header when expanded but keeping the caret */
+.root_header_hidden {
+    display: none;
+}
+
+/* Keep the caret visible on the first item of expanded content */
+.root_term_content.expanded > .name:first-child {
+    position: relative;
+}
+
+.root_term_content.expanded > .name:first-child::before {
+    content: "▼";
+    position: absolute;
+    left: -30px;
+    color: #aaa;
+    font-size: 20px;
+    text-align: center;
+    line-height: 24px;
+    width: 24px;
+    height: 24px;
+    top: 50%;
+    transform: translateY(-50%);
+    cursor: pointer;
+    z-index: 10;
+}
+
+/* Style the caret on hover */
+.root_term_content.expanded > .name:first-child:hover::before {
+    color: #fff;
+}
+
 .root_term_header {
     align-items:      center;
 }
@@ -449,6 +496,23 @@ body {
 .root_term_text {
     font-family: monospace;
     font-size: 14px;
+    cursor: pointer;
+    position: relative;
+}
+
+.root_term_text.name_copied {
+    animation: copy-flash 1s ease;
+}
+
+.root_term_text.name_copied::after {
+    content: 'Copied!';
+    position: absolute;
+    right: -60px;
+    top: 0;
+    color: #61dafb;
+    font-size: 12px;
+    opacity: 0;
+    animation: fade-in-out 1s ease;
 }
 
 .root_term_content {
@@ -500,4 +564,47 @@ body {
 
 .root_term_header:hover .root_term_caret {
     color:            #fff;
+}
+
+/* Add styling for the expand/collapse buttons */
+#root_toggle_all {
+    margin-right:     10px;
+    font-size:        16px;
+}
+
+/* Special styling for the first item in expanded content (root item) */
+.root_item {
+    padding-bottom: 4px !important;
+    margin-bottom: 4px !important;
+}
+
+/* Make the caret more visible for root items */
+.root_term_content.expanded > .root_item::before {
+    color: #ddd;
+}
+
+#filter_file:hover {
+    background-color: rgba(46, 204, 113, 0.1);
+    border:           1px solid rgba(46, 204, 113, 0.7);
+}
+
+.root_term_file .root_term_text {
+    color: #2ecc71;
+}
+
+/* Additional styling for file paths */
+.name_file .term:last-child {
+    font-weight: normal;
+    opacity: 0.9;
+}
+
+/* Style for extension */
+.name_file .term:last-child:not(:first-child) {
+    font-style: italic;
+    opacity: 0.8;
+}
+
+/* Style for directory parts */
+.name_file .term:not(:last-child) {
+    font-weight: normal;
 } 

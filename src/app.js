@@ -6,6 +6,7 @@ window.parameter_name_list = [];
 window.constant_name_list  = [];
 window.event_name_list     = [];
 window.property_name_list  = [];
+window.file_name_list      = [];
 window.filter_state       = {
     // Identifier type filters
     function_is  : true,
@@ -15,13 +16,18 @@ window.filter_state       = {
     constant_is  : true,
     event_is     : true,
     property_is  : true,
+    file_is      : true,
     
     // Search filter
-    search_filter_text  : ''
+    search_query : ''
 };
 
 // Track expanded state of root terms
 window.root_expanded_state = {};
+window.search_root_previous_state = {};
+window.roots_matched_by_search = {};
+window.search_timer = null;
+window.search_delay_ms = 300; // Time to wait after typing stops
 
 // App functions
 const app_event_listener_setup = () => {
@@ -34,13 +40,14 @@ const app_event_listener_setup = () => {
     const filter_constant_element  = document.getElementById('filter_constant');
     const filter_event_element     = document.getElementById('filter_event');
     const filter_property_element  = document.getElementById('filter_property');
+    const filter_file_element      = document.getElementById('filter_file');
     
     // Reset button
     const filter_reset_all_element = document.getElementById('filter_reset_all');
     
     // Search elements
-    const name_search_input_element = document.getElementById('name_search_input');
-    const name_search_clear_element = document.getElementById('name_search_clear');
+    const search_input_element = document.getElementById('name_search_input');
+    const search_clear_element = document.getElementById('name_search_clear');
     
     // Set up type filter event listeners
     filter_type_function_event_add(filter_function_element);
@@ -50,40 +57,84 @@ const app_event_listener_setup = () => {
     filter_type_event_add(filter_constant_element, 'constant');
     filter_type_event_add(filter_event_element, 'event');
     filter_type_event_add(filter_property_element, 'property');
+    filter_type_event_add(filter_file_element, 'file');
     
     // Set up reset all filters button
     if (filter_reset_all_element) {
         filter_reset_all_element.addEventListener('click', filter_all_reset);
     }
     
-    // Set up search input event listeners
-    if (name_search_input_element) {
-        name_search_input_element.addEventListener('input', () => {
-            search_filter_apply(name_search_input_element.value);
+    // Set up root toggle all button
+    const root_toggle_all_element = document.getElementById('root_toggle_all');
+    
+    if (root_toggle_all_element) {
+        // Track current state - start with "will expand all" (▶)
+        let all_expanded = false;
+        
+        root_toggle_all_element.addEventListener('click', () => {
+            all_expanded = !all_expanded;
             
-            // Show/hide the clear button based on input
-            if (name_search_input_element.value.length > 0) {
-                name_search_clear_element.classList.add('visible');
+            if (all_expanded) {
+                // Change to "will collapse all" state
+                dom_element_text_set(root_toggle_all_element, '▼');
+                root_toggle_all_element.title = 'Collapse all roots';
+                root_open_all();
             } else {
-                name_search_clear_element.classList.remove('visible');
+                // Change to "will expand all" state
+                dom_element_text_set(root_toggle_all_element, '▶');
+                root_toggle_all_element.title = 'Expand all roots';
+                root_close_all();
             }
         });
+    }
+    
+    // Set up search input event listeners
+    if (search_input_element) {
+        search_input_element.addEventListener('input', () => {
+            // Show/hide the clear button based on input
+            if (search_input_element.value.length > 0) {
+                search_clear_element.classList.add('visible');
+            } else {
+                search_clear_element.classList.remove('visible');
+            }
+            
+            // Clear any existing timer
+            if (window.search_timer) {
+                clearTimeout(window.search_timer);
+            }
+            
+            // Set a new timer to apply the search after typing stops
+            window.search_timer = setTimeout(() => {
+                search_apply(search_input_element.value);
+            }, window.search_delay_ms);
+        });
         
-        // On Enter key, apply the search
-        name_search_input_element.addEventListener('keydown', (event) => {
+        // On Enter key, apply the search immediately
+        search_input_element.addEventListener('keydown', (event) => {
             if (event.key === 'Enter') {
                 event.preventDefault();
-                search_filter_apply(name_search_input_element.value);
+                // Clear any pending debounce timer
+                if (window.search_timer) {
+                    clearTimeout(window.search_timer);
+                }
+                search_apply(search_input_element.value);
             }
         });
     }
     
     // Set up search clear button
-    if (name_search_clear_element) {
-        name_search_clear_element.addEventListener('click', () => {
-            name_search_input_element.value = '';
-            name_search_clear_element.classList.remove('visible');
-            search_filter_apply('');
+    if (search_clear_element) {
+        search_clear_element.addEventListener('click', () => {
+            search_input_element.value = '';
+            search_clear_element.classList.remove('visible');
+            
+            // Clear any pending debounce timer
+            if (window.search_timer) {
+                clearTimeout(window.search_timer);
+            }
+            
+            // Apply the empty search immediately
+            search_apply('');
         });
     }
 };
@@ -138,8 +189,8 @@ const filter_all_reset = () => {
     
     // Turn on all filters
     for (const filter_type in window.filter_state) {
-        // Skip search_filter_text, handle it separately
-        if (filter_type === 'search_filter_text') continue;
+        // Skip search_query, handle it separately
+        if (filter_type === 'search_query') continue;
         
         window.filter_state[filter_type] = true;
         
@@ -151,17 +202,17 @@ const filter_all_reset = () => {
         }
     }
     
-    // Clear search text
-    window.filter_state.search_filter_text = '';
-    const name_search_input_element = document.getElementById('name_search_input');
-    const name_search_clear_element = document.getElementById('name_search_clear');
+    // Clear search query
+    window.filter_state.search_query = '';
+    const search_input_element = document.getElementById('name_search_input');
+    const search_clear_element = document.getElementById('name_search_clear');
     
-    if (name_search_input_element) {
-        name_search_input_element.value = '';
+    if (search_input_element) {
+        search_input_element.value = '';
     }
     
-    if (name_search_clear_element) {
-        name_search_clear_element.classList.remove('visible');
+    if (search_clear_element) {
+        search_clear_element.classList.remove('visible');
     }
     
     // Apply the filter
@@ -183,6 +234,8 @@ const filter_all_reset = () => {
     
     // Clear all saved expanded states
     window.root_expanded_state = {};
+    // Also clear search history when resetting filters
+    window.roots_matched_by_search = {};
 };
 const filter_count_visible_check = () => {
     window.app_function_list['filter_count_visible_check'] = filter_count_visible_check;
@@ -201,8 +254,8 @@ const filter_exclusive_set = (active_filter_type) => {
     
     // Turn off all filters
     for (const filter_type in window.filter_state) {
-        // Skip search_filter_text, don't change it
-        if (filter_type === 'search_filter_text') continue;
+        // Skip search_query, don't change it
+        if (filter_type === 'search_query') continue;
         
         window.filter_state[filter_type] = false;
         
@@ -247,10 +300,11 @@ const filter_name_apply = () => {
         constant_is  : 0,
         event_is     : 0,
         property_is  : 0,
+        file_is      : 0,
         count_total  : 0
     };
     
-    // First filter the name list based on the search filter
+    // First filter the name list based on the search query
     const filtered_name_list = name_list.filter(name_string => {
         return name_filter_visible_is(name_string);
     });
@@ -280,6 +334,8 @@ const filter_name_apply = () => {
             name_count.event_is++;
         } else if (window.property_name_list.includes(name_string)) {
             name_count.property_is++;
+        } else if (window.file_name_list.includes(name_string)) {
+            name_count.file_is++;
         } else {
             name_count.variable_is++;
         }
@@ -301,6 +357,7 @@ const filter_name_apply = () => {
         const name_constant_element_list  = document.querySelectorAll('.name_constant');
         const name_event_element_list     = document.querySelectorAll('.name_event');
         const name_property_element_list  = document.querySelectorAll('.name_property');
+        const name_file_element_list      = document.querySelectorAll('.name_file');
         
         name_function_element_list.forEach(element => {
             if (window.filter_state.function_is) {
@@ -352,6 +409,14 @@ const filter_name_apply = () => {
         
         name_property_element_list.forEach(element => {
             if (window.filter_state.property_is) {
+                element.classList.remove('name_hidden');
+            } else {
+                element.classList.add('name_hidden');
+            }
+        });
+        
+        name_file_element_list.forEach(element => {
+            if (window.filter_state.file_is) {
                 element.classList.remove('name_hidden');
             } else {
                 element.classList.add('name_hidden');
@@ -446,18 +511,20 @@ const name_filter_visible_is = (name_string) => {
     }
     
     // Check type filters
-    const name_type_function_is  = window.function_name_list.includes(name_string);
-    const name_type_class_is     = window.dom_class_name_list.includes(name_string);
-    const name_type_parameter_is = window.parameter_name_list.includes(name_string);
-    const name_type_constant_is  = window.constant_name_list.includes(name_string);
-    const name_type_event_is     = window.event_name_list.includes(name_string);
-    const name_type_property_is  = window.property_name_list.includes(name_string);
+    const name_type_function_is  = Array.isArray(window.function_name_list) && window.function_name_list.includes(name_string);
+    const name_type_class_is     = Array.isArray(window.dom_class_name_list) && window.dom_class_name_list.includes(name_string);
+    const name_type_parameter_is = Array.isArray(window.parameter_name_list) && window.parameter_name_list.includes(name_string);
+    const name_type_constant_is  = Array.isArray(window.constant_name_list) && window.constant_name_list.includes(name_string);
+    const name_type_event_is     = Array.isArray(window.event_name_list) && window.event_name_list.includes(name_string);
+    const name_type_property_is  = Array.isArray(window.property_name_list) && window.property_name_list.includes(name_string);
+    const name_type_file_is      = Array.isArray(window.file_name_list) && window.file_name_list.includes(name_string);
     const name_type_variable_is  = !name_type_function_is && 
                                    !name_type_class_is && 
                                    !name_type_parameter_is && 
                                    !name_type_constant_is && 
                                    !name_type_event_is && 
-                                   !name_type_property_is;
+                                   !name_type_property_is &&
+                                   !name_type_file_is;
     
     if (name_type_function_is && !window.filter_state.function_is) {
         return false;
@@ -483,30 +550,18 @@ const name_filter_visible_is = (name_string) => {
         return false;
     }
     
+    if (name_type_file_is && !window.filter_state.file_is) {
+        return false;
+    }
+    
     if (name_type_variable_is && !window.filter_state.variable_is) {
         return false;
     }
     
-    // Check search text filter (case insensitive)
-    if (window.filter_state.search_filter_text && window.filter_state.search_filter_text.length > 0) {
-        const name_lower = name_string.toLowerCase();
-        const search_lower = window.filter_state.search_filter_text.toLowerCase();
-        
-        // First check if the full name contains the search text
-        if (name_lower.includes(search_lower)) {
-            return true;
-        }
-        
-        // If not found in full name, check individual terms
-        const terms = term_list_extract(name_string);
-        for (let i = 0; i < terms.length; i++) {
-            if (terms[i].toLowerCase().includes(search_lower)) {
-                return true;
-            }
-        }
-        
-        // No matches found
-        return false;
+    // Check search query filter (case insensitive)
+    if (window.filter_state.search_query && window.filter_state.search_query.length > 0) {
+        const search_lower = window.filter_state.search_query.toLowerCase();
+        return search_matches(name_string, search_lower);
     }
     
     return true;
@@ -544,7 +599,11 @@ const name_list_const_set = () => {
         'root_header_create',
         'root_connect',
         'root_type_determine',
-        'search_filter_apply',
+        'root_open_all',
+        'root_close_all',
+        'search_apply',
+        'search_matches',
+        'search_query_validate',
         'string_by_separator_split',
         'term_list_compare',
         'term_list_extract',
@@ -583,8 +642,8 @@ const name_list_const_set = () => {
         'name_function_element_list',
         'name_list',
         'name_lower',
-        'name_search_clear_element',
-        'name_search_input_element',
+        'search_clear_element',
+        'search_input_element',
         'name_string',
         'name_string_previous',
         'name_total_count',
@@ -598,9 +657,13 @@ const name_list_const_set = () => {
         'parens_element',
         'result',
         'root_expanded_state',
+        'search_root_previous_state',
         'root_group_map',
         'root_name',
-        'search_filter_text',
+        'roots_matched_by_search',
+        'search_timer',
+        'search_delay_ms',
+        'search_query',
         'search_lower',
         'separator',
         'separator_element',
@@ -698,12 +761,29 @@ const name_list_const_set = () => {
         'term_color_value'
     ];
     
+    const file_names = [
+        // Root project files
+        'index.html',
+        'README.md',
+        'server.js',
+        
+        // Project folders
+        'src/',
+        
+        // Files in src/ folder
+        'src/app.js',
+        'src/index.html',
+        'src/styles.css',
+        'src/styles.css.bak'
+    ];
+    
     window.function_name_list = function_names;
     window.dom_class_name_list = dom_class_names;
     window.parameter_name_list = parameter_names;
     window.constant_name_list = constant_names;
     window.event_name_list = event_names;
     window.property_name_list = property_names;
+    window.file_name_list = file_names;
     
     variable_names.forEach(name => {
         window.app_variable_list[name] = name;
@@ -716,7 +796,8 @@ const name_list_const_set = () => {
         ...parameter_names,
         ...constant_names,
         ...event_names,
-        ...property_names
+        ...property_names,
+        ...file_names
     ];
     
     return name_type_list_set;
@@ -733,12 +814,14 @@ const name_list_dom_render = (name_string, term_previous_list = null) => {
     const name_type_constant_is  = Array.isArray(window.constant_name_list) && window.constant_name_list.includes(name_string);
     const name_type_event_is     = Array.isArray(window.event_name_list) && window.event_name_list.includes(name_string);
     const name_type_property_is  = Array.isArray(window.property_name_list) && window.property_name_list.includes(name_string);
+    const name_type_file_is      = Array.isArray(window.file_name_list) && window.file_name_list.includes(name_string);
     const name_type_variable_is  = !name_type_function_is && 
                                    !name_type_class_is && 
                                    !name_type_parameter_is && 
                                    !name_type_constant_is && 
                                    !name_type_event_is && 
-                                   !name_type_property_is;
+                                   !name_type_property_is &&
+                                   !name_type_file_is;
     
     let type_class_name = 'name_variable';
     if (name_type_function_is) {
@@ -753,6 +836,8 @@ const name_list_dom_render = (name_string, term_previous_list = null) => {
         type_class_name = 'name_event';
     } else if (name_type_property_is) {
         type_class_name = 'name_property';
+    } else if (name_type_file_is) {
+        type_class_name = 'name_file';
     }
     
     dom_element_class_add(name_element, type_class_name);
@@ -788,18 +873,26 @@ const name_list_dom_render = (name_string, term_previous_list = null) => {
             const separator_element = dom_element_create('span');
             dom_element_class_add(separator_element, 'separator');
             dom_element_class_add(separator_element, term_style_class_name.replace('term', 'separator'));
-            dom_element_text_set(separator_element, '_');
+            
+            // Choose the right separator based on the name type
+            let separator_char = '_';  // Default for most identifiers
+            
+            // If it's a file path, use / or . as appropriate
+            if (name_type_file_is) {
+                // Check if term ends with /, indicating it's a directory part
+                if (term.endsWith('/')) {
+                    separator_char = '';  // No separator needed as / is already in the term
+                } else if (index === term_list.length - 2 && !term_list[term_list.length - 1].includes('/')) {
+                    separator_char = '.';  // Use . between filename and extension
+                } else {
+                    separator_char = '/';  // Use / for path elements
+                }
+            }
+            
+            dom_element_text_set(separator_element, separator_char);
             dom_element_append(term_container_element, separator_element);
         }
     });
-    
-    // Add function parens if needed
-    if (name_type_function_is) {
-        const parens_element = dom_element_create('span');
-        dom_element_class_add(parens_element, 'name_function_parens');
-        dom_element_text_set(parens_element, '()');
-        dom_element_append(term_container_element, parens_element);
-    }
     
     dom_element_append(name_element, term_container_element);
     
@@ -819,7 +912,8 @@ const name_list_get = () => {
             ...window.parameter_name_list,
             ...window.constant_name_list,
             ...window.event_name_list,
-            ...window.property_name_list
+            ...window.property_name_list,
+            ...window.file_name_list
         ];
     }
     
@@ -831,14 +925,95 @@ const name_list_order_get = () => {
     const name_list = name_list_get();
     return array_sort_alphabetically(name_list);
 };
-const search_filter_apply = (search_text) => {
-    window.app_function_list['search_filter_apply'] = search_filter_apply;
+const search_apply = (search_query) => {
+    window.app_function_list['search_apply'] = search_apply;
     
-    // Update the filter state with the new search text
-    window.filter_state.search_filter_text = search_text;
+    // Validate and normalize the query
+    search_query = search_query_validate(search_query);
     
-    // Re-apply the filter to show only matching names
+    // First-time initialization
+    if (!window.search_root_previous_state) {
+        window.search_root_previous_state = {};
+    }
+    
+    // Entering search mode for the first time
+    if (!window.filter_state.search_query && search_query) {
+        // Save current state before modifying for search
+        window.search_root_previous_state = { ...window.root_expanded_state };
+    }
+    
+    const previous_search = window.filter_state.search_query;
+    
+    // When starting a new search (either first search or changing search terms)
+    if (search_query && search_query !== previous_search) {
+        // Reset matched roots for new search
+        window.roots_matched_by_search = {};
+    }
+    
+    // Update the filter state with the new search query
+    window.filter_state.search_query = search_query;
+    
+    // If search query is present, find roots with matches
+    if (search_query && search_query.length > 0) {
+        const search_lower = search_query.toLowerCase();
+        const all_names = name_list_get();
+        
+        // Find all names that match the search
+        all_names.forEach(name_string => {
+            if (search_matches(name_string, search_lower)) {
+                // Get the root term and mark it for expansion
+                const root_name = root_extract(name_string);
+                window.root_expanded_state[root_name] = true;
+                // Remember this root was matched for future reference
+                window.roots_matched_by_search[root_name] = true;
+            }
+        });
+    } 
+    // When exiting search mode (had search, now cleared)
+    else if (previous_search && !search_query) {
+        // First restore the state from before search
+        window.root_expanded_state = { ...window.search_root_previous_state };
+        
+        // Then ensure roots that matched search remain open
+        Object.keys(window.roots_matched_by_search).forEach(root_name => {
+            window.root_expanded_state[root_name] = true;
+        });
+    }
+    
+    // Re-apply the filter to show all matching names
     filter_name_apply();
+};
+
+// Helper function to validate and normalize a search query
+const search_query_validate = (query) => {
+    window.app_function_list['search_query_validate'] = search_query_validate;
+    
+    // Trim whitespace
+    query = query ? query.trim() : '';
+    
+    // Return the sanitized query
+    return query;
+};
+
+// Helper function to determine if a name matches the search
+const search_matches = (name_string, search_lower) => {
+    window.app_function_list['search_matches'] = search_matches;
+    
+    // Check if full name contains the search text
+    const name_lower = name_string.toLowerCase();
+    if (name_lower.includes(search_lower)) {
+        return true;
+    }
+    
+    // If not found in full name, check individual terms
+    const terms = term_list_extract(name_string);
+    for (let i = 0; i < terms.length; i++) {
+        if (terms[i].toLowerCase().includes(search_lower)) {
+            return true;
+        }
+    }
+    
+    return false;
 };
 
 // String functions
@@ -873,6 +1048,23 @@ const term_list_compare = (term_list, term_previous_list) => {
 const term_list_extract = (name_string) => {
     window.app_function_list['term_list_extract'] = term_list_extract;
     
+    // Special handling for file paths
+    if (name_string.includes('/') || name_string.includes('.')) {
+        if (name_string.includes('/')) {
+            // For paths, split by '/' but keep the structure
+            return name_string.split('/').filter(Boolean);
+        } else if (name_string.includes('.')) {
+            // For files, separate the name from extension
+            const parts = name_string.split('.');
+            if (parts.length > 1) {
+                const extension = parts.pop();
+                const filename = parts.join('.');
+                return [filename, extension];
+            }
+        }
+    }
+    
+    // Default behavior for underscore-separated names
     return string_by_separator_split(name_string, '_');
 };
 const term_style_get = (term_same_is) => {
@@ -887,8 +1079,76 @@ document.addEventListener('DOMContentLoaded', app_init);
 // Root functions
 const root_extract = (name_string) => {
     window.app_function_list['root_extract'] = root_extract;
+    
+    // Check if this is a file path (contains / or .)
+    if (name_string.includes('/') || name_string.includes('.')) {
+        // For files with paths, use directory or extension as the grouping
+        if (name_string.includes('/')) {
+            // For directory paths, use the first directory as the root
+            return name_string.split('/')[0] + '/';
+        } else {
+            // For files with extensions but no path, use the extension
+            const parts = name_string.split('.');
+            if (parts.length > 1) {
+                return '.' + parts[parts.length - 1]; // Use extension with dot prefix
+            }
+        }
+    }
+    
+    // Default to the first underscore-separated term
     const term_list = term_list_extract(name_string);
-    return term_list[0]; // The first term is the root
+    return term_list[0];
+};
+
+const root_open_all = () => {
+    window.app_function_list['root_open_all'] = root_open_all;
+    
+    // Get all root groups that are not already expanded
+    const headers = document.querySelectorAll('.root_term_header:not(.root_header_hidden)');
+    
+    // For each header, get its content and toggle it open
+    headers.forEach(header => {
+        const group = header.closest('.root_term_group');
+        if (!group) return;
+        
+        const content = group.querySelector('.root_term_content');
+        if (!content || content.classList.contains('expanded')) return;
+        
+        const root_text = header.querySelector('.root_term_text');
+        if (!root_text) return;
+        
+        const root_name = root_text.textContent;
+        
+        // Toggle the group open
+        toggleRootGroup(header, content, root_name);
+    });
+};
+
+const root_close_all = () => {
+    window.app_function_list['root_close_all'] = root_close_all;
+    
+    // Get all expanded root contents
+    const contents = document.querySelectorAll('.root_term_content.expanded');
+    
+    // For each content, find its header and toggle it closed
+    contents.forEach(content => {
+        const group = content.closest('.root_term_group');
+        if (!group) return;
+        
+        const header = group.querySelector('.root_term_header');
+        if (!header) return;
+        
+        const root_text = header.querySelector('.root_term_text');
+        if (!root_text) return;
+        
+        const root_name = root_text.textContent;
+        
+        // Toggle the group closed
+        toggleRootGroup(header, content, root_name);
+    });
+    
+    // Clear matched search results when explicitly closing all
+    window.roots_matched_by_search = {};
 };
 
 const root_group_create = (root_name, names_in_group, index_element) => {
@@ -981,23 +1241,92 @@ const root_connect = (header_element, content_element, root_name) => {
     window.app_function_list['root_connect'] = root_connect;
     
     const caret_element = header_element.querySelector('.root_term_caret');
-    if (!caret_element) return;
+    const root_text_element = header_element.querySelector('.root_term_text');
+    
+    if (!caret_element || !root_text_element) return;
+    
+    // Add click handler for the root text to copy the root name
+    root_text_element.addEventListener('click', (event) => {
+        event.stopPropagation(); // Prevent toggle
+        navigator.clipboard.writeText(root_name);
+        
+        // Add a brief animation/feedback for the copy
+        root_text_element.classList.add('name_copied');
+        setTimeout(() => {
+            root_text_element.classList.remove('name_copied');
+        }, 1000);
+    });
     
     // Apply saved expanded state if it exists
     if (window.root_expanded_state[root_name]) {
-        caret_element.classList.add('expanded');
-        dom_element_text_set(caret_element, '▼');
+        // Expand the content
         content_element.classList.add('expanded');
+        
+        // Hide the header
+        header_element.classList.add('root_header_hidden');
     }
     
-    // Add click event to toggle the group
-    header_element.addEventListener('click', () => {
-        const isExpanded = root_toggle(caret_element);
-        content_element.classList.toggle('expanded');
-        
-        // Save the expanded state for this root term
-        window.root_expanded_state[root_name] = isExpanded;
+    // Add click event to toggle the group (but only when clicking on the header, not the text)
+    header_element.addEventListener('click', (event) => {
+        // Make sure we're not clicking on the root_text_element
+        if (event.target !== root_text_element) {
+            toggleRootGroup(header_element, content_element, root_name);
+        }
     });
+    
+    // Add click event to the first child's caret (when header is hidden)
+    content_element.addEventListener('click', (event) => {
+        // Only process clicks when content is expanded
+        if (!content_element.classList.contains('expanded')) return;
+        
+        const firstChild = content_element.querySelector('.name:first-child');
+        if (!firstChild) return;
+        
+        // Check if click was in the caret area (30px to the left of the first child)
+        const firstChildRect = firstChild.getBoundingClientRect();
+        const isInCaretArea = (event.clientX < firstChildRect.left - 5) && 
+                             (event.clientX > firstChildRect.left - 35) &&
+                             (event.clientY >= firstChildRect.top) &&
+                             (event.clientY <= firstChildRect.bottom);
+                             
+        if (isInCaretArea) {
+            event.preventDefault();
+            event.stopPropagation();
+            toggleRootGroup(header_element, content_element, root_name);
+        }
+    });
+};
+
+// New helper function to toggle root groups
+const toggleRootGroup = (header_element, content_element, root_name) => {
+    window.app_function_list['toggleRootGroup'] = toggleRootGroup;
+    
+    const isExpanded = !content_element.classList.contains('expanded');
+    
+    // Toggle content visibility
+    content_element.classList.toggle('expanded');
+    
+    // Toggle header visibility
+    if (isExpanded) {
+        header_element.classList.add('root_header_hidden');
+        
+        // Add root indicator class to first item
+        const firstItem = content_element.querySelector('.name:first-child');
+        if (firstItem) {
+            firstItem.classList.add('root_item');
+        }
+    } else {
+        header_element.classList.remove('root_header_hidden');
+        
+        // Remove root indicator class from all items
+        const rootItems = content_element.querySelectorAll('.root_item');
+        rootItems.forEach(item => {
+            item.classList.remove('root_item');
+        });
+    }
+    
+    // Save the expanded state for this root term
+    window.root_expanded_state[root_name] = isExpanded;
 };
 
 const root_toggle = (caret_element) => {

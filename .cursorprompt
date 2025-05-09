@@ -17,6 +17,7 @@ Please follow these "rules" regarding naming conventions and code appearance str
                 - name_    : identifiers (functions, variables, classes)
                 - term_    : name components
                 - root_    : the first term of a name
+                - search   : related to searching names
                 - filter_  : filtering functionality
                 
                 general:
