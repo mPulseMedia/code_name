@@ -1,101 +1,116 @@
-// Global registry of functions and variables
-window.app_functions  = {};
-window.app_variables  = {};
-window.function_names = [];
+window.app_function_list  = {};
+window.app_variable_list  = {};
+window.function_name_list = [];
 window.dom_class_names = [];
 window.filter_state   = {
     function: true,
-    variable: false,
-    class:    false
+    variable: true,
+    class:    true
 };
 
-// Setup event listeners
 const app_event_listener_setup = () => {
-    // Register this function
-    window.app_functions['app_event_listener_setup'] = app_event_listener_setup;
+    window.app_function_list['app_event_listener_setup'] = app_event_listener_setup;
     
-    // Add event listeners for filter buttons
-    const filter_button_function = document.getElementById('filter_button_function');
-    const filter_button_variable = document.getElementById('filter_button_variable');
-    const filter_button_class    = document.getElementById('filter_button_class');
+    const filter_function = document.getElementById('filter_function');
+    const filter_variable = document.getElementById('filter_variable');
+    const filter_class    = document.getElementById('filter_class');
     
-    // Set up event listeners for filter buttons
-    filter_button_function.addEventListener('click', () => {
+    filter_function_event_add(filter_function);
+    filter_variable_event_add(filter_variable);
+    filter_class_event_add(filter_class);
+};
+
+const filter_function_event_add = (button) => {
+    window.app_function_list['filter_function_event_add'] = filter_function_event_add;
+    
+    button.addEventListener('click', () => {
         filter_toggle('function');
     });
+};
+
+const filter_variable_event_add = (button) => {
+    window.app_function_list['filter_variable_event_add'] = filter_variable_event_add;
     
-    filter_button_variable.addEventListener('click', () => {
+    button.addEventListener('click', () => {
         filter_toggle('variable');
     });
+};
+
+const filter_class_event_add = (button) => {
+    window.app_function_list['filter_class_event_add'] = filter_class_event_add;
     
-    filter_button_class.addEventListener('click', () => {
+    button.addEventListener('click', () => {
         filter_toggle('class');
     });
 };
 
-// Toggle a filter state and update display
 const filter_toggle = (filter_type) => {
-    // Register this function
-    window.app_functions['filter_toggle'] = filter_toggle;
+    window.app_function_list['filter_toggle'] = filter_toggle;
     
-    // Toggle the filter state
     window.filter_state[filter_type] = !window.filter_state[filter_type];
     
-    // Update the button appearance
-    const button = document.getElementById(`filter_button_${filter_type}`);
+    const button = document.getElementById(`filter_${filter_type}`);
     if (window.filter_state[filter_type]) {
         button.classList.add('filter_active');
     } else {
         button.classList.remove('filter_active');
     }
     
-    // Apply filtering to the name list
     filter_apply();
 };
 
-// Apply current filter settings to the name list
 const filter_apply = () => {
-    // Register this function
-    window.app_functions['filter_apply'] = filter_apply;
+    window.app_function_list['filter_apply'] = filter_apply;
     
     console.log('filter_apply_start', window.filter_state);
     
-    // Re-render the entire list to ensure proper term graying based on visibility
     const index_ele = document.getElementById('index');
-    if (index_ele) {
-        // Clear existing content
-        index_ele.innerHTML = '';
-        
-        // Re-render with filter-aware term graying
-        const name_list          = name_list_order_get();
-        console.log('filter_apply_name_list_length', name_list.length);
-        
-        let term_previous_list   = null;
-        let name_previous_string = null;
-        
-        // Process each name in the list
-        name_list.forEach(name_string => {
-            // Only consider previous terms if the previous name will be visible
-            const should_use_previous   = name_previous_string && name_filter_is_visible(name_previous_string);
-            const effective_previous_list = should_use_previous ? term_previous_list : null;
-            
-            const { name_ele, term_list } = name_list_dom_render(name_string, effective_previous_list);
-            dom_append(index_ele, name_ele);
-            
-            // Only update previous terms if this name will be visible after filtering
-            if (name_filter_is_visible(name_string)) {
-                term_previous_list  = term_list;
-                name_previous_string = name_string;
-            }
-        });
+    if (!index_ele) {
+        console.error('index_element_not_found_in_filter_apply');
+        return;
     }
     
-    // Apply visibility based on filter state
+    index_ele.innerHTML = '';
+    
+    const name_list = name_list_order_get();
+    console.log('filter_apply_name_list_length', name_list.length);
+    
+    let visible_count = {
+        function: 0,
+        variable: 0,
+        class: 0,
+        total: 0
+    };
+    
+    let term_previous_list   = null;
+    let name_previous_string = null;
+    
+    name_list.forEach(name_string => {
+        const should_use_previous   = name_previous_string && name_filter_visible_is(name_previous_string);
+        const effective_previous_list = should_use_previous ? term_previous_list : null;
+        
+        const { name_ele, term_list } = name_list_dom_render(name_string, effective_previous_list);
+        dom_append(index_ele, name_ele);
+        
+        if (name_filter_visible_is(name_string)) {
+            term_previous_list  = term_list;
+            name_previous_string = name_string;
+            
+            if (window.function_name_list.includes(name_string)) {
+                visible_count.function++;
+            } else if (window.dom_class_names.includes(name_string)) {
+                visible_count.class++;
+            } else {
+                visible_count.variable++;
+            }
+            visible_count.total++;
+        }
+    });
+    
     const name_function_elements = document.querySelectorAll('.name_function');
     const name_variable_elements = document.querySelectorAll('.name_variable');
     const name_class_elements    = document.querySelectorAll('.name_class');
     
-    // Apply filter state to each category
     name_function_elements.forEach(element => {
         if (window.filter_state.function) {
             element.classList.remove('name_hidden');
@@ -119,76 +134,85 @@ const filter_apply = () => {
             element.classList.add('name_hidden');
         }
     });
+    
+    console.log('filter_apply_complete', {
+        visible: visible_count,
+        filter_state: { ...window.filter_state }
+    });
 };
 
-// Initialize the app
 const app_initialize = () => {
-    // Register this function in our global registry
-    window.app_functions['app_initialize'] = app_initialize;
+    window.app_function_list['app_initialize'] = app_initialize;
     
     console.log('app_initialize_start');
     
-    // First set up event listeners
     app_event_listener_setup();
     
-    // Then extract the names and render the index
-    name_list_extract(); // Ensure names are extracted before rendering
+    name_list_extract();
+    
+    console.log('filter_state_pre_render', window.filter_state);
+    
     index_dom_render();
+    
+    setTimeout(() => {
+        console.log('post_render_filter_check');
+        
+        const visible_items = document.querySelectorAll('.name:not(.name_hidden)').length;
+        const total_items = document.querySelectorAll('.name').length;
+        
+        console.log('visibility_check', {
+            visible: visible_items,
+            total: total_items,
+            filter_state: { ...window.filter_state }
+        });
+        
+        if (visible_items === 0 && total_items > 0) {
+            console.log('fixing_visibility_issue');
+            filter_apply();
+        }
+    }, 100);
     
     console.log('filter_state_initial', window.filter_state);
 };
 
-// Sort an array alphabetically
 const array_sort_alphabetically = (array) => {
-    // Register this function
-    window.app_functions['array_sort_alphabetically'] = array_sort_alphabetically;
+    window.app_function_list['array_sort_alphabetically'] = array_sort_alphabetically;
     
     return [...array].sort();
 };
 
-// Append a child element to a parent element
 const dom_append = (parent, child) => {
-    // Register this function
-    window.app_functions['dom_append'] = dom_append;
+    window.app_function_list['dom_append'] = dom_append;
     
     parent.appendChild(child);
     return parent;
 };
 
-// Add a class to a DOM element
 const dom_class_add = (element, class_name) => {
-    // Register this function
-    window.app_functions['dom_class_add'] = dom_class_add;
+    window.app_function_list['dom_class_add'] = dom_class_add;
     
     element.classList.add(class_name);
     return element;
 };
 
-// Create a DOM element
 const dom_create = (tag) => {
-    // Register this function
-    window.app_functions['dom_create'] = dom_create;
+    window.app_function_list['dom_create'] = dom_create;
     
     return document.createElement(tag);
 };
 
-// Set text content of a DOM element
 const dom_text_set = (element, text) => {
-    // Register this function
-    window.app_functions['dom_text_set'] = dom_text_set;
+    window.app_function_list['dom_text_set'] = dom_text_set;
     
     element.textContent = text;
     return element;
 };
 
-// Render the names list
 const index_dom_render = () => {
-    // Register this function
-    window.app_functions['index_dom_render'] = index_dom_render;
+    window.app_function_list['index_dom_render'] = index_dom_render;
     
     console.log('index_dom_render_start');
     
-    // Check if the index element exists
     const index_ele = document.getElementById('index');
     if (!index_ele) {
         console.error('index_element_not_found');
@@ -196,7 +220,7 @@ const index_dom_render = () => {
     }
     
     const name_list = name_list_order_get();
-    console.log('name_list_render_prepare', name_list);
+    console.log('name_list_render_prepare', name_list.length, 'names');
     
     if (!name_list || name_list.length === 0) {
         const message = document.createElement('li');
@@ -205,27 +229,20 @@ const index_dom_render = () => {
         return;
     }
     
-    // Apply filtering, which will handle the rendering with filter-awareness
-    if (window.app_functions['filter_apply']) {
-        filter_apply();
-    }
+    console.log('applying_filters_during_render');
+    filter_apply();
 };
 
-// Create a DOM element for a name with styled terms
 const name_list_dom_render = (name_string, term_previous_list = null) => {
-    // Register this function
-    window.app_functions['name_list_dom_render'] = name_list_dom_render;
+    window.app_function_list['name_list_dom_render'] = name_list_dom_render;
     
-    // Create the main list item element to hold the name
     const name_div = dom_create('li');
     dom_class_add(name_div, 'name');
     
-    // Determine the type of name (function, variable, or CSS class)
-    const name_type_function = window.function_names.includes(name_string);
+    const name_type_function = window.function_name_list.includes(name_string);
     const name_type_class    = window.dom_class_names.includes(name_string);
     const name_type_variable = !name_type_function && !name_type_class;
     
-    // Add class based on name type
     if (name_type_function) {
         dom_class_add(name_div, 'name_function');
     } else if (name_type_class) {
@@ -234,17 +251,13 @@ const name_list_dom_render = (name_string, term_previous_list = null) => {
         dom_class_add(name_div, 'name_variable');
     }
     
-    // Add click event for copying to clipboard
     name_div.addEventListener('click', () => {
-        // Copy the name to clipboard
         navigator.clipboard.writeText(name_string)
             .then(() => {
-                // Add the copied class to trigger the animation
-                dom_class_add(name_div, 'copied');
+                dom_class_add(name_div, 'name_copied');
                 
-                // Remove the class after animation completes
                 setTimeout(() => {
-                    name_div.classList.remove('copied');
+                    name_div.classList.remove('name_copied');
                 }, 1000);
             })
             .catch(err => {
@@ -252,40 +265,29 @@ const name_list_dom_render = (name_string, term_previous_list = null) => {
             });
     });
     
-    // Add title attribute for tooltip
     let type_text = name_type_function ? 'function' : (name_type_class ? 'CSS class' : 'variable');
     name_div.setAttribute('title', `Click to copy (${type_text})`);
     
-    // Create a container to hold all terms and separators without unwanted spacing
     const term_dom_container = dom_create('div');
     dom_class_add(term_dom_container, 'term_container');
     dom_append(name_div, term_dom_container);
     
-    // Extract individual terms from the name by splitting on underscores
     const term_list = term_list_extract(name_string);
     
-    // Compare each term with the corresponding term from the previous name
-    // This determines which terms should be gray (repeated) or white (new/different)
     const term_list_same_is = term_list_compare(term_list, term_previous_list);
     
-    // Process each term in the name
     term_list.forEach((term, index) => {
-        // Check if this term is the same as in the previous name
         const term_same_is      = term_list_same_is[index];
         
-        // Determine the style (gray or white) based on whether the term is repeated
         const term_style_string = term_style_get(term_same_is);
         
-        // Create an element for this term
         const term_ele          = dom_create('span');
         dom_class_add(term_ele, 'term');
-        dom_class_add(term_ele, `term_${term_style_string}`); // Add style-specific class
-        dom_text_set(term_ele, term); // Set the text content
-        dom_append(term_dom_container, term_ele); // Add to the container
+        dom_class_add(term_ele, `term_${term_style_string}`);
+        dom_text_set(term_ele, term);
+        dom_append(term_dom_container, term_ele);
         
-        // If this isn't the last term, add a separator (_)
         if (index < term_list.length - 1) {
-            // Create separator with the same style as its preceding term
             const separator_ele = dom_create('span');
             dom_class_add(separator_ele, 'separator');
             dom_class_add(separator_ele, `separator_${term_style_string}`);
@@ -294,7 +296,6 @@ const name_list_dom_render = (name_string, term_previous_list = null) => {
         }
     });
     
-    // Add parentheses to function names
     if (name_type_function) {
         const parens = dom_create('span');
         dom_class_add(parens, 'function_parens');
@@ -302,18 +303,14 @@ const name_list_dom_render = (name_string, term_previous_list = null) => {
         dom_append(term_dom_container, parens);
     }
     
-    // Return both the created DOM element and the terms for the next name to compare against
     return { name_ele: name_div, term_list };
 };
 
-// Extract function and variable names from the script
 const name_list_extract = () => {
-    // Register this function
-    window.app_functions['name_list_extract'] = name_list_extract;
+    window.app_function_list['name_list_extract'] = name_list_extract;
     
     console.log('name_list_extract_start');
     
-    // Function names in alphabetical order
     const function_names = [
         'app_event_listener_setup',
         'app_initialize',
@@ -323,9 +320,12 @@ const name_list_extract = () => {
         'dom_create',
         'dom_text_set',
         'filter_apply',
+        'filter_class_event_add',
+        'filter_function_event_add',
         'filter_toggle',
+        'filter_variable_event_add',
         'index_dom_render',
-        'name_filter_is_visible',
+        'name_filter_visible_is',
         'name_list_dom_render',
         'name_list_extract',
         'name_list_get',
@@ -336,31 +336,38 @@ const name_list_extract = () => {
         'term_style_get'
     ];
     
-    // Variable names in order of appearance
     const variable_names = [
-        'app_functions',
-        'app_variables',
+        'app_function_list',
+        'app_variable_list',
         'array',
+        'button',
         'child',
+        'class_is',
         'class_name',
+        'current_term_match_is',
+        'debug_enabled_is',
+        'debug_name_is',
         'dom_class_names',
         'element',
-        'filter_button_class',
-        'filter_button_function',
-        'filter_button_variable',
+        'filter_class',
+        'filter_function',
         'filter_state',
-        'function_names',
+        'filter_variable',
+        'function_is',
+        'function_name_list',
         'index_ele',
         'message',
         'name_div',
         'name_ele',
-        'name_is_class',
-        'name_is_function',
         'name_list',
         'name_string',
+        'name_type_class',
+        'name_type_function',
         'name_type_list_set',
+        'name_type_variable',
         'parent',
         'parens',
+        'result',
         'separator',
         'separator_ele',
         'string',
@@ -370,25 +377,33 @@ const name_list_extract = () => {
         'term_ele',
         'term_list',
         'term_list_same_is',
+        'term_previous_all_match_is',
         'term_previous_list',
         'term_same_is',
         'term_style_string',
         'text',
+        'total_items',
         'type_text',
-        'variable_names'
+        'variable_is',
+        'variable_names',
+        'visible_count',
+        'visible_items'
     ];
     
-    // DOM class names in alphabetical order
     const dom_class_names = [
         'app_container',
         'app_title',
-        'copied',
+        'filter',
+        'filter_active',
+        'filter_container',
         'function_parens',
         'index',
         'index_container',
         'name',
         'name_class',
+        'name_copied',
         'name_function',
+        'name_hidden',
         'name_variable',
         'separator',
         'separator_gray',
@@ -399,145 +414,163 @@ const name_list_extract = () => {
         'term_white'
     ];
     
-    // Store function and class names globally for reference
-    window.function_names = function_names;
+    window.function_name_list = function_names;
     window.dom_class_names = dom_class_names;
     
-    // Log the counts to ensure they're populated
     console.log('name_list_extract_counts', {
-        functions: window.function_names.length,
+        functions: window.function_name_list.length,
         classes: window.dom_class_names.length,
-        variables: Object.keys(window.app_variables).length
+        variables: Object.keys(window.app_variable_list).length
     });
     
-    // Combine all names
     const name_type_list_set = [...function_names, ...variable_names, ...dom_class_names];
     
-    // Register all variable names for reference
     variable_names.forEach(name => {
-        window.app_variables[name] = name;
+        window.app_variable_list[name] = name;
     });
     
     return name_type_list_set;
 };
 
-// Collection of names from the code
 const name_list_get = () => {
-    // Register this function
-    window.app_functions['name_list_get'] = name_list_get;
+    window.app_function_list['name_list_get'] = name_list_get;
     
     console.log('name_list_get_start');
     
-    // If we already have function names extracted, don't re-extract them
-    if (window.function_names.length > 0) {
-        console.log('using_existing_name_list', window.function_names.length);
-        return [...window.function_names, ...Object.keys(window.app_variables), ...window.dom_class_names];
+    if (window.function_name_list.length > 0) {
+        console.log('using_existing_name_list', window.function_name_list.length);
+        return [...window.function_name_list, ...Object.keys(window.app_variable_list), ...window.dom_class_names];
     }
     
-    // Get all the names by extraction
     return name_list_extract();
 };
 
-// Get the ordered list of names (functions and variables)
 const name_list_order_get = () => {
-    // Register this function
-    window.app_functions['name_list_order_get'] = name_list_order_get;
+    window.app_function_list['name_list_order_get'] = name_list_order_get;
     
     console.log('name_list_order_get_start');
     const name_list = name_list_get();
-    // Sort the names alphabetically
     return array_sort_alphabetically(name_list);
 };
 
-// Split a string by a separator
 const string_by_separator_split = (string, separator) => {
-    // Register this function
-    window.app_functions['string_by_separator_split'] = string_by_separator_split;
+    window.app_function_list['string_by_separator_split'] = string_by_separator_split;
     
     return string.split(separator);
 };
 
-// Compare terms between current and previous function
 const term_list_compare = (term_list, term_previous_list) => {
-    // Register this function
-    window.app_functions['term_list_compare'] = term_list_compare;
+    window.app_function_list['term_list_compare'] = term_list_compare;
     
     if (!term_previous_list) return term_list.map(() => false);
-    return term_list.map((term, index) => {
-        return term_previous_list[index] === term;
+    
+    const debug_enabled_is = false;
+    const debug_name_is = term_list.join('_').includes('dom_append');
+    
+    if (debug_enabled_is && debug_name_is) {
+        console.log('Term comparison:', {
+            current: term_list.join('_'),
+            previous: term_previous_list.join('_')
+        });
+    }
+    
+    let term_previous_all_match_is = true;
+    
+    const result = term_list.map((term, index) => {
+        if (!term_previous_all_match_is) return false;
+        
+        const current_term_match_is = index < term_previous_list.length && term_previous_list[index] === term;
+        
+        if (!current_term_match_is) {
+            term_previous_all_match_is = false;
+        }
+        
+        if (debug_enabled_is && debug_name_is) {
+            console.log(`Term ${index}: "${term}" ${current_term_match_is ? 'matches' : 'differs'}, term_previous_all_match_is=${term_previous_all_match_is}`);
+        }
+        
+        return current_term_match_is;
     });
+    
+    if (debug_enabled_is && debug_name_is) {
+        console.log('Result:', result);
+    }
+    
+    return result;
 };
 
-// Extract terms from a name
 const term_list_extract = (name_string) => {
-    // Register this function
-    window.app_functions['term_list_extract'] = term_list_extract;
+    window.app_function_list['term_list_extract'] = term_list_extract;
     
     return string_by_separator_split(name_string, '_');
 };
 
-// Determine the style for a term based on comparison
 const term_style_get = (term_same_is) => {
-    // Register this function
-    window.app_functions['term_style_get'] = term_style_get;
+    window.app_function_list['term_style_get'] = term_style_get;
     
     return term_same_is ? 'gray' : 'white';
 };
 
-// Check if a name should be visible based on filter state
-const name_filter_is_visible = (name_string) => {
-    // Register this function
-    window.app_functions['name_filter_is_visible'] = name_filter_is_visible;
+const name_filter_visible_is = (name_string) => {
+    window.app_function_list['name_filter_visible_is'] = name_filter_visible_is;
     
-    const name_type_function = window.function_names.includes(name_string);
-    const name_type_class    = window.dom_class_names.includes(name_string);
+    if (!window.filter_state) {
+        console.error('filter_state_missing');
+        window.filter_state = {
+            function: true,
+            variable: true,
+            class: true
+        };
+    }
+    
+    if (!name_string) {
+        console.warn('name_string_empty');
+        return true;
+    }
+    
+    const name_type_function = Array.isArray(window.function_name_list) && window.function_name_list.includes(name_string);
+    const name_type_class    = Array.isArray(window.dom_class_names) && window.dom_class_names.includes(name_string);
     const name_type_variable = !name_type_function && !name_type_class;
     
-    // Add debug logging for troubleshooting
     if (name_string.startsWith('app_')) {
         console.log('visibility_check', {
             name: name_string,
-            is_function: name_type_function,
-            is_class: name_type_class,
-            is_variable: name_type_variable,
+            function_is: name_type_function,
+            class_is: name_type_class,
+            variable_is: name_type_variable,
             filter_state: { ...window.filter_state }
         });
     }
     
     if (name_type_function) {
-        return window.filter_state.function;
+        return !!window.filter_state.function;
     } else if (name_type_class) {
-        return window.filter_state.class;
+        return !!window.filter_state.class;
     } else {
-        return window.filter_state.variable;
+        return !!window.filter_state.variable;
     }
 };
 
-// Start the app when DOM is loaded
 document.addEventListener('DOMContentLoaded', () => {
     console.log('dom_content_loaded');
     
-    // Log all functions and variables that have been registered
-    console.log('function_list_pre_init', Object.keys(window.app_functions));
-    console.log('variable_list_pre_init', Object.keys(window.app_variables));
+    console.log('function_list_pre_init', Object.keys(window.app_function_list));
+    console.log('variable_list_pre_init', Object.keys(window.app_variable_list));
     
-    // Initialize the app
     app_initialize();
     
-    // Log all functions and variables after initialization
-    console.log('function_list_post_init', Object.keys(window.app_functions));
-    console.log('variable_list_post_init', Object.keys(window.app_variables));
+    console.log('function_list_post_init', Object.keys(window.app_function_list));
+    console.log('variable_list_post_init', Object.keys(window.app_variable_list));
     
-    // For debug purposes, make lists of all names available globally
     window.getAllFunctionNames = () => {
-        return Object.keys(window.app_functions);
+        return Object.keys(window.app_function_list);
     };
     
     window.getAllVariableNames = () => {
-        return Object.keys(window.app_variables);
+        return Object.keys(window.app_variable_list);
     };
     
     window.getAllNames = () => {
-        return [...Object.keys(window.app_functions), ...Object.keys(window.app_variables)];
+        return [...Object.keys(window.app_function_list), ...Object.keys(window.app_variable_list)];
     };
 });
