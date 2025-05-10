@@ -1,14 +1,14 @@
-window.name_list_func = {};
-window.name_list_var = {};
+window.name_list_func  = {};
+window.name_list_var   = {};
 window.name_list_class = [];
 window.name_list_param = [];
 window.name_list_const = [];
 window.name_list_event = [];
 window.name_list_propt = [];
-window.name_list_file = [];
-window.name_list_store = [];  // New list for storage items
-window.filter_on_list       = {
-    // Identifier type filters
+window.name_list_file  = [];
+window.name_list_store = [];
+
+window.filter_on_list  = {
     func_on    : true,
     var_on     : true,
     class_on   : true,
@@ -16,19 +16,16 @@ window.filter_on_list       = {
     const_on   : true,
     event_on   : true,
     propt_on   : true,
-    file_on    : true,  // New filter for file names
-    store_on   : true,  // New filter for storage items
-    
-    // Search filter
+    file_on    : true,
+    store_on   : true,
     search_query : ''
 };
 
-// Track open state of root terms
-window.root_open_state = {};
-window.search_root_match = {};
+window.root_open_state            = {};
 window.search_root_previous_state = {};
-window.search_timeout = null;
-window.search_delay_ms = 300; // Time to wait after typing stops
+window.search_root_match         = {};
+window.search_timeout            = null;
+window.search_delay_ms           = 300;
 
 // App functions
 const app_event_listener_setup = () => {
