@@ -1,21 +1,21 @@
-window.name_type_function_list = {};
-window.name_type_variable_list = {};
-window.name_type_class_list = [];
-window.name_type_parameter_list = [];
-window.name_type_const_list = [];
-window.name_type_event_list = [];
-window.name_type_property_list = [];
-window.name_type_file_list = [];
-window.filter_state       = {
+window.name_list_func = {};
+window.name_list_var = {};
+window.name_list_class = [];
+window.name_list_param = [];
+window.name_list_const = [];
+window.name_list_event = [];
+window.name_list_propt = [];
+window.name_list_file = [];
+window.filter_on_list       = {
     // Identifier type filters
-    function_is  : true,
-    variable_is  : true,
-    class_is     : true,
-    parameter_is : true,
-    constant_is  : true,
-    event_is     : true,
-    property_is  : true,
-    file_is      : true,  // New filter for file names
+    func_on    : true,
+    var_on     : true,
+    class_on   : true,
+    param_on   : true,
+    const_on   : true,
+    event_on   : true,
+    propt_on   : true,
+    file_on    : true,  // New filter for file names
     
     // Search filter
     search_query : ''
@@ -30,7 +30,7 @@ window.search_delay_ms = 300; // Time to wait after typing stops
 
 // App functions
 const app_event_listener_setup = () => {
-    window.name_type_function_list['app_event_listener_setup'] = app_event_listener_setup;
+    window.name_list_func['app_event_listener_setup'] = app_event_listener_setup;
     // Type filter buttons
     const filter_function_element  = document.getElementById('filter_function');
     const filter_variable_element  = document.getElementById('filter_variable');
@@ -138,7 +138,7 @@ const app_event_listener_setup = () => {
     }
 };
 const app_init = () => {
-    window.name_type_function_list['app_init'] = app_init;
+    window.name_list_func['app_init'] = app_init;
     
     app_event_listener_setup();
     name_list_const_set();
@@ -153,7 +153,7 @@ const app_init = () => {
 
 // Array functions
 const array_sort_alphabetically = (array_input) => {
-    window.name_type_function_list['array_sort_alphabetically'] = array_sort_alphabetically;
+    window.name_list_func['array_sort_alphabetically'] = array_sort_alphabetically;
     return [...array_input].sort((a, b) => {
         const a_lower = String(a).toLowerCase();
         const b_lower = String(b).toLowerCase();
@@ -163,46 +163,60 @@ const array_sort_alphabetically = (array_input) => {
 
 // DOM functions
 const dom_element_append = (parent_element, child_element) => {
-    window.name_type_function_list['dom_element_append'] = dom_element_append;
+    window.name_list_func['dom_element_append'] = dom_element_append;
     parent_element.appendChild(child_element);
     return parent_element;
 };
 const dom_element_class_add = (target_element, class_name) => {
-    window.name_type_function_list['dom_element_class_add'] = dom_element_class_add;
+    window.name_list_func['dom_element_class_add'] = dom_element_class_add;
     target_element.classList.add(class_name);
     return target_element;
 };
 const dom_element_create = (element_tag) => {
-    window.name_type_function_list['dom_element_create'] = dom_element_create;
+    window.name_list_func['dom_element_create'] = dom_element_create;
     return document.createElement(element_tag);
 };
 const dom_element_text_set = (target_element, text_content) => {
-    window.name_type_function_list['dom_element_text_set'] = dom_element_text_set;
+    window.name_list_func['dom_element_text_set'] = dom_element_text_set;
     target_element.textContent = text_content;
     return target_element;
 };
 
 // Filter functions
 const filter_all_reset = () => {
-    window.name_type_function_list['filter_all_reset'] = filter_all_reset;
+    window.name_list_func['filter_all_reset'] = filter_all_reset;
+    
+    // Map of filter types to their button IDs
+    const filter_type_map = {
+        'func_on': 'function',
+        'var_on': 'variable',
+        'class_on': 'class',
+        'param_on': 'parameter',
+        'const_on': 'constant',
+        'event_on': 'event',
+        'propt_on': 'property',
+        'file_on': 'file'
+    };
     
     // Turn on all filters
-    for (const filter_type in window.filter_state) {
+    for (const filter_type in window.filter_on_list) {
         // Skip search_query, handle it separately
         if (filter_type === 'search_query') continue;
         
-        window.filter_state[filter_type] = true;
+        window.filter_on_list[filter_type] = true;
         
         // Update button UI
-        const filter_id = filter_type.replace('_is', '');
-        const button_element = document.getElementById(`filter_${filter_id}`);
-        if (button_element) {
-            button_element.classList.add('filter_active');
+        const filter_id = filter_type_map[filter_type];
+        if (filter_id) {
+            const button_element = document.getElementById(`filter_${filter_id}`);
+            if (button_element) {
+                button_element.classList.add('filter_active');
+            }
         }
     }
     
     // Clear search query
-    window.filter_state.search_query = '';
+    window.filter_on_list.search_query = '';
     const search_input_element = document.getElementById('name_search_input');
     const search_clear_element = document.getElementById('name_search_clear');
     
@@ -237,7 +251,7 @@ const filter_all_reset = () => {
     window.roots_matched_by_search = {};
 };
 const filter_count_visible_check = () => {
-    window.name_type_function_list['filter_count_visible_check'] = filter_count_visible_check;
+    window.name_list_func['filter_count_visible_check'] = filter_count_visible_check;
     
     const name_visible_count = document.querySelectorAll('.name:not(.name_hidden)').length;
     const name_total_count   = document.querySelectorAll('.name').length;
@@ -249,38 +263,54 @@ const filter_count_visible_check = () => {
     }
 };
 const filter_exclusive_set = (active_filter_type) => {
-    window.name_type_function_list['filter_exclusive_set'] = filter_exclusive_set;
+    window.name_list_func['filter_exclusive_set'] = filter_exclusive_set;
+    
+    // Map of filter types to their button IDs
+    const filter_type_map = {
+        'func_on': 'function',
+        'var_on': 'variable',
+        'class_on': 'class',
+        'param_on': 'parameter',
+        'const_on': 'constant',
+        'event_on': 'event',
+        'propt_on': 'property',
+        'file_on': 'file'
+    };
     
     // Turn off all filters
-    for (const filter_type in window.filter_state) {
+    for (const filter_type in window.filter_on_list) {
         // Skip search_query, don't change it
         if (filter_type === 'search_query') continue;
         
-        window.filter_state[filter_type] = false;
+        window.filter_on_list[filter_type] = false;
         
         // Update button UI
-        const filter_id = filter_type.replace('_is', '');
-        const button_element = document.getElementById(`filter_${filter_id}`);
-        if (button_element) {
-            button_element.classList.remove('filter_active');
+        const filter_id = filter_type_map[filter_type];
+        if (filter_id) {
+            const button_element = document.getElementById(`filter_${filter_id}`);
+            if (button_element) {
+                button_element.classList.remove('filter_active');
+            }
         }
     }
     
     // Turn on only the selected filter
-    window.filter_state[active_filter_type] = true;
+    window.filter_on_list[active_filter_type] = true;
     
     // Update button UI for the selected filter
-    const active_filter_id = active_filter_type.replace('_is', '');
-    const active_button_element = document.getElementById(`filter_${active_filter_id}`);
-    if (active_button_element) {
-        active_button_element.classList.add('filter_active');
+    const active_filter_id = filter_type_map[active_filter_type];
+    if (active_filter_id) {
+        const active_button_element = document.getElementById(`filter_${active_filter_id}`);
+        if (active_button_element) {
+            active_button_element.classList.add('filter_active');
+        }
     }
     
     // Apply the filter
     filter_name_apply();
 };
 const filter_name_apply = () => {
-    window.name_type_function_list['filter_name_apply'] = filter_name_apply;
+    window.name_list_func['filter_name_apply'] = filter_name_apply;
     
     const index_element = document.getElementById('index');
     if (!index_element) {
@@ -292,15 +322,15 @@ const filter_name_apply = () => {
     const name_list = name_list_order_get();
     
     let name_count = {
-        function_is  : 0,
-        variable_is  : 0,
-        class_is     : 0,
-        parameter_is : 0,
-        constant_is  : 0,
-        event_is     : 0,
-        property_is  : 0,
-        file_is      : 0,
-        count_total  : 0
+        func_on    : 0,
+        var_on     : 0,
+        class_on   : 0,
+        param_on   : 0,
+        const_on   : 0,
+        event_on   : 0,
+        propt_on   : 0,
+        file_on    : 0,
+        count_total: 0
     };
     
     // First filter the name list based on the search query
@@ -321,22 +351,22 @@ const filter_name_apply = () => {
         root_group_map[root_name].push(name_string);
         
         // Count the visible names by type
-        if (Object.keys(window.name_type_function_list).includes(name_string)) {
-            name_count.function_is++;
-        } else if (window.name_type_class_list.includes(name_string)) {
-            name_count.class_is++;
-        } else if (window.name_type_parameter_list.includes(name_string)) {
-            name_count.parameter_is++;
-        } else if (window.name_type_const_list.includes(name_string)) {
-            name_count.constant_is++;
-        } else if (window.name_type_event_list.includes(name_string)) {
-            name_count.event_is++;
-        } else if (window.name_type_property_list.includes(name_string)) {
-            name_count.property_is++;
-        } else if (window.name_type_file_list.includes(name_string)) {
-            name_count.file_is++;
+        if (Object.keys(window.name_list_func).includes(name_string)) {
+            name_count.func_on++;
+        } else if (window.name_list_class.includes(name_string)) {
+            name_count.class_on++;
+        } else if (window.name_list_param.includes(name_string)) {
+            name_count.param_on++;
+        } else if (window.name_list_const.includes(name_string)) {
+            name_count.const_on++;
+        } else if (window.name_list_event.includes(name_string)) {
+            name_count.event_on++;
+        } else if (window.name_list_propt.includes(name_string)) {
+            name_count.propt_on++;
+        } else if (window.name_list_file.includes(name_string)) {
+            name_count.file_on++;
         } else {
-            name_count.variable_is++;
+            name_count.var_on++;
         }
         name_count.count_total++;
     });
@@ -359,7 +389,7 @@ const filter_name_apply = () => {
         const name_file_element_list      = document.querySelectorAll('.name_file');
         
         name_function_element_list.forEach(element => {
-            if (window.filter_state.function_is) {
+            if (window.filter_on_list.func_on) {
                 element.classList.remove('name_hidden');
             } else {
                 element.classList.add('name_hidden');
@@ -367,7 +397,7 @@ const filter_name_apply = () => {
         });
         
         name_variable_element_list.forEach(element => {
-            if (window.filter_state.variable_is) {
+            if (window.filter_on_list.var_on) {
                 element.classList.remove('name_hidden');
             } else {
                 element.classList.add('name_hidden');
@@ -375,7 +405,7 @@ const filter_name_apply = () => {
         });
         
         name_class_element_list.forEach(element => {
-            if (window.filter_state.class_is) {
+            if (window.filter_on_list.class_on) {
                 element.classList.remove('name_hidden');
             } else {
                 element.classList.add('name_hidden');
@@ -383,7 +413,7 @@ const filter_name_apply = () => {
         });
         
         name_parameter_element_list.forEach(element => {
-            if (window.filter_state.parameter_is) {
+            if (window.filter_on_list.param_on) {
                 element.classList.remove('name_hidden');
             } else {
                 element.classList.add('name_hidden');
@@ -391,7 +421,7 @@ const filter_name_apply = () => {
         });
         
         name_constant_element_list.forEach(element => {
-            if (window.filter_state.constant_is) {
+            if (window.filter_on_list.const_on) {
                 element.classList.remove('name_hidden');
             } else {
                 element.classList.add('name_hidden');
@@ -399,7 +429,7 @@ const filter_name_apply = () => {
         });
         
         name_event_element_list.forEach(element => {
-            if (window.filter_state.event_is) {
+            if (window.filter_on_list.event_on) {
                 element.classList.remove('name_hidden');
             } else {
                 element.classList.add('name_hidden');
@@ -407,7 +437,7 @@ const filter_name_apply = () => {
         });
         
         name_property_element_list.forEach(element => {
-            if (window.filter_state.property_is) {
+            if (window.filter_on_list.propt_on) {
                 element.classList.remove('name_hidden');
             } else {
                 element.classList.add('name_hidden');
@@ -415,7 +445,7 @@ const filter_name_apply = () => {
         });
         
         name_file_element_list.forEach(element => {
-            if (window.filter_state.file_is) {
+            if (window.filter_on_list.file_on) {
                 element.classList.remove('name_hidden');
             } else {
                 element.classList.add('name_hidden');
@@ -424,22 +454,38 @@ const filter_name_apply = () => {
     });
 };
 const filter_state_toggle = (filter_type) => {
-    window.name_type_function_list['filter_state_toggle'] = filter_state_toggle;
-    const filter_property_is = `${filter_type}_is`;
+    window.name_list_func['filter_state_toggle'] = filter_state_toggle;
     
-    window.filter_state[filter_property_is] = !window.filter_state[filter_property_is];
+    // Map the filter type to its corresponding property name
+    const filter_type_map = {
+        'function': 'func_on',
+        'variable': 'var_on',
+        'class': 'class_on',
+        'parameter': 'param_on',
+        'constant': 'const_on',
+        'event': 'event_on',
+        'property': 'propt_on',
+        'file': 'file_on'
+    };
+    
+    const filter_property_on = filter_type_map[filter_type];
+    if (!filter_property_on) return;
+    
+    window.filter_on_list[filter_property_on] = !window.filter_on_list[filter_property_on];
     
     const button_element = document.getElementById(`filter_${filter_type}`);
-    if (window.filter_state[filter_property_is]) {
-        button_element.classList.add('filter_active');
-    } else {
-        button_element.classList.remove('filter_active');
+    if (button_element) {
+        if (window.filter_on_list[filter_property_on]) {
+            button_element.classList.add('filter_active');
+        } else {
+            button_element.classList.remove('filter_active');
+        }
     }
     
     filter_name_apply();
 };
 const filter_type_class_event_add = (button_element) => {
-    window.name_type_function_list['filter_type_class_event_add'] = filter_type_class_event_add;
+    window.name_list_func['filter_type_class_event_add'] = filter_type_class_event_add;
     
     // Single click: toggle this filter
     button_element.addEventListener('click', () => {
@@ -449,25 +495,34 @@ const filter_type_class_event_add = (button_element) => {
     // Double click: select only this filter
     button_element.addEventListener('dblclick', (event) => {
         event.preventDefault(); // Prevent text selection
-        filter_exclusive_set('class_is');
+        filter_exclusive_set('class_on');
     });
 };
 const filter_type_event_add = (button_element, type) => {
-    window.name_type_function_list['filter_type_event_add'] = filter_type_event_add;
+    window.name_list_func['filter_type_event_add'] = filter_type_event_add;
     
     // Single click: toggle this filter
-    button_element.addEventListener('click', (event) => {
+    button_element.addEventListener('click', () => {
         filter_state_toggle(type);
     });
     
     // Double click: select only this filter
     button_element.addEventListener('dblclick', (event) => {
         event.preventDefault(); // Prevent text selection
-        filter_exclusive_set(`${type}_is`);
+        // Map the type to its corresponding filter property
+        const type_to_property = {
+            'parameter': 'param_on',
+            'constant': 'const_on',
+            'event': 'event_on',
+            'property': 'propt_on',
+            'file': 'file_on'
+        };
+        const filter_property = type_to_property[type] || `${type}_on`;
+        filter_exclusive_set(filter_property);
     });
 };
 const filter_type_function_event_add = (button_element) => {
-    window.name_type_function_list['filter_type_function_event_add'] = filter_type_function_event_add;
+    window.name_list_func['filter_type_function_event_add'] = filter_type_function_event_add;
     
     // Single click: toggle this filter
     button_element.addEventListener('click', () => {
@@ -477,11 +532,11 @@ const filter_type_function_event_add = (button_element) => {
     // Double click: select only this filter
     button_element.addEventListener('dblclick', (event) => {
         event.preventDefault(); // Prevent text selection
-        filter_exclusive_set('function_is');
+        filter_exclusive_set('func_on');
     });
 };
 const filter_type_variable_event_add = (button_element) => {
-    window.name_type_function_list['filter_type_variable_event_add'] = filter_type_variable_event_add;
+    window.name_list_func['filter_type_variable_event_add'] = filter_type_variable_event_add;
     
     // Single click: toggle this filter
     button_element.addEventListener('click', () => {
@@ -491,76 +546,76 @@ const filter_type_variable_event_add = (button_element) => {
     // Double click: select only this filter
     button_element.addEventListener('dblclick', (event) => {
         event.preventDefault(); // Prevent text selection
-        filter_exclusive_set('variable_is');
+        filter_exclusive_set('var_on');
     });
 };
 
 // Index functions
 const index_dom_render = () => {
-    window.name_type_function_list['index_dom_render'] = index_dom_render;
+    window.name_list_func['index_dom_render'] = index_dom_render;
     filter_name_apply();
 };
 
 // Name functions
 const name_filter_visible_is = (name_string) => {
-    window.name_type_function_list['name_filter_visible_is'] = name_filter_visible_is;
+    window.name_list_func['name_filter_visible_is'] = name_filter_visible_is;
     
     if (!name_string) {
         return false;
     }
     
     // Check type filters
-    const name_type_function_is  = Object.keys(window.name_type_function_list).includes(name_string);
-    const name_type_class_is     = window.name_type_class_list.includes(name_string);
-    const name_type_parameter_is = window.name_type_parameter_list.includes(name_string);
-    const name_type_constant_is  = window.name_type_const_list.includes(name_string);
-    const name_type_event_is     = window.name_type_event_list.includes(name_string);
-    const name_type_property_is  = window.name_type_property_list.includes(name_string);
-    const name_type_file_is      = window.name_type_file_list.includes(name_string);
-    const name_type_variable_is  = Object.keys(window.name_type_variable_list).includes(name_string);
+    const name_type_function_is  = Object.keys(window.name_list_func).includes(name_string);
+    const name_type_class_is     = window.name_list_class.includes(name_string);
+    const name_type_parameter_is = window.name_list_param.includes(name_string);
+    const name_type_constant_is  = window.name_list_const.includes(name_string);
+    const name_type_event_is     = window.name_list_event.includes(name_string);
+    const name_type_property_is  = window.name_list_propt.includes(name_string);
+    const name_type_file_is      = window.name_list_file.includes(name_string);
+    const name_type_variable_is  = Object.keys(window.name_list_var).includes(name_string);
     
-    if (name_type_function_is && !window.filter_state.function_is) {
+    if (name_type_function_is && !window.filter_on_list.func_on) {
         return false;
     }
     
-    if (name_type_class_is && !window.filter_state.class_is) {
+    if (name_type_class_is && !window.filter_on_list.class_on) {
         return false;
     }
     
-    if (name_type_parameter_is && !window.filter_state.parameter_is) {
+    if (name_type_parameter_is && !window.filter_on_list.param_on) {
         return false;
     }
     
-    if (name_type_constant_is && !window.filter_state.constant_is) {
+    if (name_type_constant_is && !window.filter_on_list.const_on) {
         return false;
     }
     
-    if (name_type_event_is && !window.filter_state.event_is) {
+    if (name_type_event_is && !window.filter_on_list.event_on) {
         return false;
     }
     
-    if (name_type_property_is && !window.filter_state.property_is) {
+    if (name_type_property_is && !window.filter_on_list.propt_on) {
         return false;
     }
     
-    if (name_type_file_is && !window.filter_state.file_is) {
+    if (name_type_file_is && !window.filter_on_list.file_on) {
         return false;
     }
     
-    if (name_type_variable_is && !window.filter_state.variable_is) {
+    if (name_type_variable_is && !window.filter_on_list.var_on) {
         return false;
     }
     
     // Check search query filter (case insensitive)
-    if (window.filter_state.search_query && window.filter_state.search_query.length > 0) {
-        const search_lower = window.filter_state.search_query.toLowerCase();
+    if (window.filter_on_list.search_query && window.filter_on_list.search_query.length > 0) {
+        const search_lower = window.filter_on_list.search_query.toLowerCase();
         return search_matches(name_string, search_lower);
     }
     
     return true;
 };
 const name_list_const_set = () => {
-    window.name_type_function_list['name_list_const_set'] = name_list_const_set;
+    window.name_list_func['name_list_const_set'] = name_list_const_set;
     
     const function_names = [
         'app_event_listener_setup',
@@ -605,7 +660,7 @@ const name_list_const_set = () => {
     
     // Store function names in the function list object
     function_names.forEach(name => {
-        window.name_type_function_list[name] = name;
+        window.name_list_func[name] = name;
     });
     
     const variable_names = [
@@ -613,7 +668,7 @@ const name_list_const_set = () => {
         'active_filter_id',
         'active_filter_type',
         'name_type_function_list',
-        'name_type_variable_list',
+        'name_list_var',
         'array_input',
         'button_element',
         'child_element',
@@ -622,12 +677,11 @@ const name_list_const_set = () => {
         'count_total',
         'name_type_class_list',
         'element_tag',
-        'filter_class_element',
         'filter_function_element',
         'filter_id',
         'filter_property_is',
         'filter_reset_all_element',
-        'filter_state',
+        'filter_on_list',
         'filter_type',
         'filter_variable_element',
         'function_is',
@@ -779,15 +833,15 @@ const name_list_const_set = () => {
         'src/.env.local'
     ];
     
-    window.name_type_class_list = dom_class_names;
-    window.name_type_parameter_list = parameter_names;
-    window.name_type_const_list = constant_names;
-    window.name_type_event_list = event_names;
-    window.name_type_property_list = property_names;
-    window.name_type_file_list = file_names;
+    window.name_list_class = dom_class_names;
+    window.name_list_param = parameter_names;
+    window.name_list_const = constant_names;
+    window.name_list_event = event_names;
+    window.name_list_propt = property_names;
+    window.name_list_file = file_names;
     
     variable_names.forEach(name => {
-        window.name_type_variable_list[name] = name;
+        window.name_list_var[name] = name;
     });
     
     const name_type_list_set = [
@@ -804,19 +858,19 @@ const name_list_const_set = () => {
     return name_type_list_set;
 };
 const name_list_dom_render = (name_string, term_previous_list = null) => {
-    window.name_type_function_list['name_list_dom_render'] = name_list_dom_render;
+    window.name_list_func['name_list_dom_render'] = name_list_dom_render;
     
     const name_element = dom_element_create('li');
     dom_element_class_add(name_element, 'name');
     
-    const name_type_function_is  = Object.keys(window.name_type_function_list).includes(name_string);
-    const name_type_class_is     = window.name_type_class_list.includes(name_string);
-    const name_type_parameter_is = window.name_type_parameter_list.includes(name_string);
-    const name_type_constant_is  = window.name_type_const_list.includes(name_string);
-    const name_type_event_is     = window.name_type_event_list.includes(name_string);
-    const name_type_property_is  = window.name_type_property_list.includes(name_string);
-    const name_type_file_is      = window.name_type_file_list.includes(name_string);
-    const name_type_variable_is  = Object.keys(window.name_type_variable_list).includes(name_string);
+    const name_type_function_is  = Object.keys(window.name_list_func).includes(name_string);
+    const name_type_class_is     = window.name_list_class.includes(name_string);
+    const name_type_parameter_is = window.name_list_param.includes(name_string);
+    const name_type_constant_is  = window.name_list_const.includes(name_string);
+    const name_type_event_is     = window.name_list_event.includes(name_string);
+    const name_type_property_is  = window.name_list_propt.includes(name_string);
+    const name_type_file_is      = window.name_list_file.includes(name_string);
+    const name_type_variable_is  = Object.keys(window.name_list_var).includes(name_string);
     
     let type_class_name = 'name_variable';
     if (name_type_function_is) {
@@ -895,31 +949,31 @@ const name_list_dom_render = (name_string, term_previous_list = null) => {
     };
 };
 const name_list_get = () => {
-    window.name_type_function_list['name_list_get'] = name_list_get;
+    window.name_list_func['name_list_get'] = name_list_get;
     
-    if (window.name_type_class_list.length > 0) {
+    if (window.name_list_class.length > 0) {
         return [
-            ...Object.keys(window.name_type_function_list),
-            ...Object.keys(window.name_type_variable_list),
-            ...window.name_type_class_list,
-            ...window.name_type_parameter_list,
-            ...window.name_type_const_list,
-            ...window.name_type_event_list,
-            ...window.name_type_property_list,
-            ...window.name_type_file_list
+            ...Object.keys(window.name_list_func),
+            ...Object.keys(window.name_list_var),
+            ...window.name_list_class,
+            ...window.name_list_param,
+            ...window.name_list_const,
+            ...window.name_list_event,
+            ...window.name_list_propt,
+            ...window.name_list_file
         ];
     }
     
     return name_list_const_set();
 };
 const name_list_order_get = () => {
-    window.name_type_function_list['name_list_order_get'] = name_list_order_get;
+    window.name_list_func['name_list_order_get'] = name_list_order_get;
     
     const name_list = name_list_get();
     return array_sort_alphabetically(name_list);
 };
 const search_apply = (search_query) => {
-    window.name_type_function_list['search_apply'] = search_apply;
+    window.name_list_func['search_apply'] = search_apply;
     
     // Validate and normalize the query
     search_query = search_query_validate(search_query);
@@ -930,12 +984,12 @@ const search_apply = (search_query) => {
     }
     
     // Entering search mode for the first time
-    if (!window.filter_state.search_query && search_query) {
+    if (!window.filter_on_list.search_query && search_query) {
         // Save current state before modifying for search
         window.search_root_previous_state = { ...window.root_open_state };
     }
     
-    const previous_search = window.filter_state.search_query;
+    const previous_search = window.filter_on_list.search_query;
     
     // When starting a new search (either first search or changing search terms)
     if (search_query && search_query !== previous_search) {
@@ -944,7 +998,7 @@ const search_apply = (search_query) => {
     }
     
     // Update the filter state with the new search query
-    window.filter_state.search_query = search_query;
+    window.filter_on_list.search_query = search_query;
     
     // If search query is present, find roots with matches
     if (search_query && search_query.length > 0) {
@@ -979,7 +1033,7 @@ const search_apply = (search_query) => {
 
 // Helper function to validate and normalize a search query
 const search_query_validate = (query) => {
-    window.name_type_function_list['search_query_validate'] = search_query_validate;
+    window.name_list_func['search_query_validate'] = search_query_validate;
     
     // Trim whitespace
     query = query ? query.trim() : '';
@@ -990,7 +1044,7 @@ const search_query_validate = (query) => {
 
 // Helper function to determine if a name matches the search
 const search_matches = (name_string, search_lower) => {
-    window.name_type_function_list['search_matches'] = search_matches;
+    window.name_list_func['search_matches'] = search_matches;
     
     // Check if full name contains the search text
     const name_lower = name_string.toLowerCase();
@@ -1011,14 +1065,14 @@ const search_matches = (name_string, search_lower) => {
 
 // String functions
 const string_by_separator_split = (string, separator) => {
-    window.name_type_function_list['string_by_separator_split'] = string_by_separator_split;
+    window.name_list_func['string_by_separator_split'] = string_by_separator_split;
     
     return string.split(separator);
 };
 
 // Term functions
 const term_list_compare = (term_list, term_previous_list) => {
-    window.name_type_function_list['term_list_compare'] = term_list_compare;
+    window.name_list_func['term_list_compare'] = term_list_compare;
     
     if (!term_previous_list) return term_list.map(() => false);
     
@@ -1039,7 +1093,7 @@ const term_list_compare = (term_list, term_previous_list) => {
     return result;
 };
 const term_list_extract = (name_string) => {
-    window.name_type_function_list['term_list_extract'] = term_list_extract;
+    window.name_list_func['term_list_extract'] = term_list_extract;
     
     // Special handling for file paths with slashes only
     if (name_string.includes('/')) {
@@ -1056,7 +1110,7 @@ const term_list_extract = (name_string) => {
     return [name_string];
 };
 const term_style_get = (term_same_is) => {
-    window.name_type_function_list['term_style_get'] = term_style_get;
+    window.name_list_func['term_style_get'] = term_style_get;
     
     return term_same_is ? 'term_gray' : 'term_white';
 };
@@ -1066,7 +1120,7 @@ document.addEventListener('DOMContentLoaded', app_init);
 
 // Root functions
 const root_extract = (name_string) => {
-    window.name_type_function_list['root_extract'] = root_extract;
+    window.name_list_func['root_extract'] = root_extract;
     
     // Special handling for directory paths only
     if (name_string.includes('/')) {
@@ -1084,7 +1138,7 @@ const root_extract = (name_string) => {
 };
 
 const root_open_all = () => {
-    window.name_type_function_list['root_open_all'] = root_open_all;
+    window.name_list_func['root_open_all'] = root_open_all;
     
     // Get all root groups that are not already opened
     const headers = document.querySelectorAll('.root_term_header:not(.root_header_hidden)');
@@ -1108,7 +1162,7 @@ const root_open_all = () => {
 };
 
 const root_close_all = () => {
-    window.name_type_function_list['root_close_all'] = root_close_all;
+    window.name_list_func['root_close_all'] = root_close_all;
     
     // Get all opened root contents
     const contents = document.querySelectorAll('.root_term_content.expanded');
@@ -1135,7 +1189,7 @@ const root_close_all = () => {
 };
 
 const root_group_create = (root_name, names_in_group, index_element) => {
-    window.name_type_function_list['root_group_create'] = root_group_create;
+    window.name_list_func['root_group_create'] = root_group_create;
     
     if (names_in_group.length === 0) return null;
     
@@ -1169,7 +1223,7 @@ const root_group_create = (root_name, names_in_group, index_element) => {
 };
 
 const root_header_create = (root_name, predominant_type) => {
-    window.name_type_function_list['root_header_create'] = root_header_create;
+    window.name_list_func['root_header_create'] = root_header_create;
     
     const header_element = dom_element_create('div');
     dom_element_class_add(header_element, 'root_term_header');
@@ -1196,7 +1250,7 @@ const root_header_create = (root_name, predominant_type) => {
 };
 
 const root_content_create = (names_in_group) => {
-    window.name_type_function_list['root_content_create'] = root_content_create;
+    window.name_list_func['root_content_create'] = root_content_create;
     
     const content_element = dom_element_create('div');
     dom_element_class_add(content_element, 'root_term_content');
@@ -1221,7 +1275,7 @@ const root_content_create = (names_in_group) => {
 };
 
 const root_connect = (header_element, content_element, root_name) => {
-    window.name_type_function_list['root_connect'] = root_connect;
+    window.name_list_func['root_connect'] = root_connect;
     
     const caret_element = header_element.querySelector('.root_term_caret');
     const root_text_element = header_element.querySelector('.root_term_text');
@@ -1282,7 +1336,7 @@ const root_connect = (header_element, content_element, root_name) => {
 
 // New helper function to toggle root groups
 const toggleRootGroup = (header_element, content_element, root_name) => {
-    window.name_type_function_list['toggleRootGroup'] = toggleRootGroup;
+    window.name_list_func['toggleRootGroup'] = toggleRootGroup;
     
     const isOpen = !content_element.classList.contains('expanded');
     
@@ -1313,7 +1367,7 @@ const toggleRootGroup = (header_element, content_element, root_name) => {
 };
 
 const root_toggle = (caret_element) => {
-    window.name_type_function_list['root_toggle'] = root_toggle;
+    window.name_list_func['root_toggle'] = root_toggle;
     
     const isOpen = caret_element.classList.toggle('expanded');
     if (isOpen) {
@@ -1325,7 +1379,7 @@ const root_toggle = (caret_element) => {
 };
 
 const root_type_determine = (names_in_group) => {
-    window.name_type_function_list['root_type_determine'] = root_type_determine;
+    window.name_list_func['root_type_determine'] = root_type_determine;
     
     const type_counts = {
         function: 0,
@@ -1338,17 +1392,17 @@ const root_type_determine = (names_in_group) => {
     };
     
     names_in_group.forEach(name_string => {
-        if (Object.keys(window.name_type_function_list).includes(name_string)) {
+        if (Object.keys(window.name_list_func).includes(name_string)) {
             type_counts.function++;
-        } else if (window.name_type_class_list.includes(name_string)) {
+        } else if (window.name_list_class.includes(name_string)) {
             type_counts.class++;
-        } else if (window.name_type_parameter_list.includes(name_string)) {
+        } else if (window.name_list_param.includes(name_string)) {
             type_counts.parameter++;
-        } else if (window.name_type_const_list.includes(name_string)) {
+        } else if (window.name_list_const.includes(name_string)) {
             type_counts.constant++;
-        } else if (window.name_type_event_list.includes(name_string)) {
+        } else if (window.name_list_event.includes(name_string)) {
             type_counts.event++;
-        } else if (window.name_type_property_list.includes(name_string)) {
+        } else if (window.name_list_propt.includes(name_string)) {
             type_counts.property++;
         } else {
             type_counts.variable++;
