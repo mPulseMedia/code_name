@@ -677,35 +677,34 @@ body {
     font-weight: normal;
 }
 
-.name_store {
-    color: #9b59b6;  /* Purple color for storage items */
-}
-
-.name_store .term_white {
+.name_window {
     color: #9b59b6;
 }
 
-.name_store .separator_white {
+.name_window .term_white,
+.name_window .separator_white {
     color: #9b59b6;
 }
 
-#filter_store {
-    color: #9b59b6;
-}
-
-#filter_store.filter_active {
-    background-color: rgba(155, 89, 182, 0.2);
+#filter_window {
+    background-color: transparent;
     border: 1px solid #9b59b6;
+    color: #9b59b6;
 }
 
-#filter_store:hover {
+#filter_window:hover {
     background-color: rgba(155, 89, 182, 0.1);
-    border: 1px solid rgba(155, 89, 182, 0.7);
+    border-color: #9b59b6;
 }
 
-#filter_store.filter_active:hover {
+#filter_window.filter_active {
+    background-color: rgba(155, 89, 182, 0.2);
+    border-color: #9b59b6;
+}
+
+#filter_window.filter_active:hover {
     background-color: rgba(155, 89, 182, 0.3);
-    border: 1px solid #9b59b6;
+    border-color: #9b59b6;
 }
 
 .root_term_store .root_term_text {

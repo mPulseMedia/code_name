@@ -6,7 +6,7 @@ window.name_list_const = [];
 window.name_list_event = [];
 window.name_list_propt = [];
 window.name_list_file  = [];
-window.name_list_store = [];
+window.name_list_window = [];
 
 window.filter_on_list  = {
     func_on    : true,
@@ -17,7 +17,7 @@ window.filter_on_list  = {
     event_on   : true,
     propt_on   : true,
     file_on    : true,
-    store_on   : true,
+    window_on  : true,
     search_query : ''
 };
 
@@ -39,7 +39,7 @@ const app_event_listener_setup = () => {
     const filter_event_element     = document.getElementById('filter_event');
     const filter_property_element  = document.getElementById('filter_property');
     const filter_file_element      = document.getElementById('filter_file');
-    const filter_store_element     = document.getElementById('filter_store');
+    const filter_window_element    = document.getElementById('filter_window');
     
     // Reset button
     const filter_reset_all_element = document.getElementById('filter_reset_all');
@@ -57,7 +57,7 @@ const app_event_listener_setup = () => {
     filter_type_event_add(filter_event_element, 'event');
     filter_type_event_add(filter_property_element, 'property');
     filter_type_event_add(filter_file_element, 'file');
-    filter_type_event_add(filter_store_element, 'store');
+    filter_type_event_add(filter_window_element, 'window');
     
     // Set up reset all filters button
     if (filter_reset_all_element) {
@@ -197,7 +197,7 @@ const filter_all_reset = () => {
         'event_on': 'event',
         'propt_on': 'property',
         'file_on': 'file',
-        'store_on': 'store'
+        'window_on': 'window'
     };
     
     // Turn on all filters
@@ -277,7 +277,7 @@ const filter_exclusive_set = (active_filter_type) => {
         'event_on': 'event',
         'propt_on': 'property',
         'file_on': 'file',
-        'store_on': 'store'  // Make sure store is included
+        'window_on': 'window'
     };
     
     // Turn off all filters
@@ -333,7 +333,7 @@ const filter_name_apply = () => {
         event_on   : 0,
         propt_on   : 0,
         file_on    : 0,
-        store_on   : 0,
+        window_on  : 0,
         count_total: 0
     };
     
@@ -369,13 +369,17 @@ const filter_name_apply = () => {
             name_count.propt_on++;
         } else if (window.name_list_file.includes(name_string)) {
             name_count.file_on++;
-        } else if (window.name_list_store.includes(name_string)) {
-            name_count.store_on++;
+        } else if (window.name_list_window.includes(name_string)) {
+            name_count.window_on++;
         } else {
             name_count.var_on++;
         }
         name_count.count_total++;
     });
+    
+    // Check if we should open all roots
+    const root_toggle_all_element = document.getElementById('root_toggle_all');
+    const all_opened = root_toggle_all_element && root_toggle_all_element.textContent === '▼';
     
     // Render each root term group
     Object.keys(root_group_map).sort((a, b) => {
@@ -383,6 +387,11 @@ const filter_name_apply = () => {
     }).forEach(root_name => {
         const names_in_group = root_group_map[root_name];
         const group_element = root_group_create(root_name, names_in_group, index_element);
+        
+        // If all roots should be open, set this root to open
+        if (all_opened) {
+            window.root_open_state[root_name] = true;
+        }
         
         // Update visibility for each type of identifier
         const name_function_element_list  = document.querySelectorAll('.name_function');
@@ -393,7 +402,7 @@ const filter_name_apply = () => {
         const name_event_element_list     = document.querySelectorAll('.name_event');
         const name_property_element_list  = document.querySelectorAll('.name_property');
         const name_file_element_list      = document.querySelectorAll('.name_file');
-        const name_store_element_list     = document.querySelectorAll('.name_store');
+        const name_window_element_list    = document.querySelectorAll('.name_window');
         
         name_function_element_list.forEach(element => {
             if (window.filter_on_list.func_on) {
@@ -459,8 +468,8 @@ const filter_name_apply = () => {
             }
         });
         
-        name_store_element_list.forEach(element => {
-            if (window.filter_on_list.store_on) {
+        name_window_element_list.forEach(element => {
+            if (window.filter_on_list.window_on) {
                 element.classList.remove('name_hidden');
             } else {
                 element.classList.add('name_hidden');
@@ -481,12 +490,13 @@ const filter_state_toggle = (filter_type) => {
         'event': 'event_on',
         'property': 'propt_on',
         'file': 'file_on',
-        'store': 'store_on'
+        'window': 'window_on'
     };
     
     const filter_property_on = filter_type_map[filter_type];
     if (!filter_property_on) return;
     
+    const was_off = !window.filter_on_list[filter_property_on];
     window.filter_on_list[filter_property_on] = !window.filter_on_list[filter_property_on];
     
     const button_element = document.getElementById(`filter_${filter_type}`);
@@ -495,6 +505,19 @@ const filter_state_toggle = (filter_type) => {
             button_element.classList.add('filter_active');
         } else {
             button_element.classList.remove('filter_active');
+        }
+    }
+    
+    // If we're turning on a filter, check the root toggle all state
+    if (was_off && window.filter_on_list[filter_property_on]) {
+        const root_toggle_all_element = document.getElementById('root_toggle_all');
+        if (root_toggle_all_element) {
+            const all_opened = root_toggle_all_element.textContent === '▼';
+            if (all_opened) {
+                root_open_all();
+            } else {
+                root_close_all();
+            }
         }
     }
     
@@ -532,7 +555,7 @@ const filter_type_event_add = (button_element, type) => {
             'event': 'event_on',
             'property': 'propt_on',
             'file': 'file_on',
-            'store': 'store_on'
+            'window': 'window_on'
         };
         const filter_property = type_to_property[type] || `${type}_on`;
         filter_exclusive_set(filter_property);
@@ -590,7 +613,7 @@ const name_filter_visible_is = (name_string) => {
     const name_type_property_is  = window.name_list_propt.includes(name_string);
     const name_type_file_is      = window.name_list_file.includes(name_string);
     const name_type_variable_is  = Object.keys(window.name_list_var).includes(name_string);
-    const name_type_store_is     = window.name_list_store.includes(name_string);
+    const name_type_window_is     = window.name_list_window.includes(name_string);
     
     if (name_type_function_is && !window.filter_on_list.func_on) {
         return false;
@@ -624,7 +647,7 @@ const name_filter_visible_is = (name_string) => {
         return false;
     }
     
-    if (name_type_store_is && !window.filter_on_list.store_on) {
+    if (name_type_window_is && !window.filter_on_list.window_on) {
         return false;
     }
     
@@ -753,7 +776,6 @@ const name_list_const_set = () => {
     ];
     
     const store_names = [
-        // Internal storage objects
         'name_list_func',
         'name_list_var',
         'name_list_class',
@@ -762,7 +784,7 @@ const name_list_const_set = () => {
         'name_list_event',
         'name_list_propt',
         'name_list_file',
-        'name_list_store',
+        'name_list_window',
         'filter_on_list',
         'root_open_state',
         'search_root_previous_state',
@@ -783,7 +805,7 @@ const name_list_const_set = () => {
     
     // Store storage names in the storage list
     store_names.forEach(name => {
-        window.name_list_store.push(name);
+        window.name_list_window.push(name);
     });
     
     const dom_class_names = [
@@ -913,7 +935,7 @@ const name_list_dom_render = (name_string, term_previous_list = null) => {
     const name_type_property_is  = window.name_list_propt.includes(name_string);
     const name_type_file_is      = window.name_list_file.includes(name_string);
     const name_type_variable_is  = Object.keys(window.name_list_var).includes(name_string);
-    const name_type_store_is     = window.name_list_store.includes(name_string);
+    const name_type_window_is     = window.name_list_window.includes(name_string);
     
     let type_class_name = 'name_variable';
     if (name_type_function_is) {
@@ -930,8 +952,8 @@ const name_list_dom_render = (name_string, term_previous_list = null) => {
         type_class_name = 'name_property';
     } else if (name_type_file_is) {
         type_class_name = 'name_file';
-    } else if (name_type_store_is) {
-        type_class_name = 'name_store';
+    } else if (name_type_window_is) {
+        type_class_name = 'name_window';
     }
     
     dom_element_class_add(name_element, type_class_name);
@@ -1006,7 +1028,7 @@ const name_list_get = () => {
             ...window.name_list_event,
             ...window.name_list_propt,
             ...window.name_list_file,
-            ...window.name_list_store
+            ...window.name_list_window
         ];
     }
     
