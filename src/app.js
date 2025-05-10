@@ -6,6 +6,7 @@ window.name_list_const = [];
 window.name_list_event = [];
 window.name_list_propt = [];
 window.name_list_file = [];
+window.name_list_store = [];  // New list for storage items
 window.filter_on_list       = {
     // Identifier type filters
     func_on    : true,
@@ -16,6 +17,7 @@ window.filter_on_list       = {
     event_on   : true,
     propt_on   : true,
     file_on    : true,  // New filter for file names
+    store_on   : true,  // New filter for storage items
     
     // Search filter
     search_query : ''
@@ -23,9 +25,9 @@ window.filter_on_list       = {
 
 // Track open state of root terms
 window.root_open_state = {};
+window.search_root_match = {};
 window.search_root_previous_state = {};
-window.roots_matched_by_search = {};
-window.search_timer = null;
+window.search_timeout = null;
 window.search_delay_ms = 300; // Time to wait after typing stops
 
 // App functions
@@ -40,6 +42,7 @@ const app_event_listener_setup = () => {
     const filter_event_element     = document.getElementById('filter_event');
     const filter_property_element  = document.getElementById('filter_property');
     const filter_file_element      = document.getElementById('filter_file');
+    const filter_store_element     = document.getElementById('filter_store');
     
     // Reset button
     const filter_reset_all_element = document.getElementById('filter_reset_all');
@@ -57,6 +60,7 @@ const app_event_listener_setup = () => {
     filter_type_event_add(filter_event_element, 'event');
     filter_type_event_add(filter_property_element, 'property');
     filter_type_event_add(filter_file_element, 'file');
+    filter_type_event_add(filter_store_element, 'store');
     
     // Set up reset all filters button
     if (filter_reset_all_element) {
@@ -98,12 +102,12 @@ const app_event_listener_setup = () => {
             }
             
             // Clear any existing timer
-            if (window.search_timer) {
-                clearTimeout(window.search_timer);
+            if (window.search_timeout) {
+                clearTimeout(window.search_timeout);
             }
             
             // Set a new timer to apply the search after typing stops
-            window.search_timer = setTimeout(() => {
+            window.search_timeout = setTimeout(() => {
                 search_apply(search_input_element.value);
             }, window.search_delay_ms);
         });
@@ -113,8 +117,8 @@ const app_event_listener_setup = () => {
             if (event.key === 'Enter') {
                 event.preventDefault();
                 // Clear any pending debounce timer
-                if (window.search_timer) {
-                    clearTimeout(window.search_timer);
+                if (window.search_timeout) {
+                    clearTimeout(window.search_timeout);
                 }
                 search_apply(search_input_element.value);
             }
@@ -128,8 +132,8 @@ const app_event_listener_setup = () => {
             search_clear_element.classList.remove('visible');
             
             // Clear any pending debounce timer
-            if (window.search_timer) {
-                clearTimeout(window.search_timer);
+            if (window.search_timeout) {
+                clearTimeout(window.search_timeout);
             }
             
             // Apply the empty search immediately
@@ -195,7 +199,8 @@ const filter_all_reset = () => {
         'const_on': 'constant',
         'event_on': 'event',
         'propt_on': 'property',
-        'file_on': 'file'
+        'file_on': 'file',
+        'store_on': 'store'
     };
     
     // Turn on all filters
@@ -248,7 +253,7 @@ const filter_all_reset = () => {
     // Clear all saved open states
     window.root_open_state = {};
     // Also clear search history when resetting filters
-    window.roots_matched_by_search = {};
+    window.search_root_match = {};
 };
 const filter_count_visible_check = () => {
     window.name_list_func['filter_count_visible_check'] = filter_count_visible_check;
@@ -274,7 +279,8 @@ const filter_exclusive_set = (active_filter_type) => {
         'const_on': 'constant',
         'event_on': 'event',
         'propt_on': 'property',
-        'file_on': 'file'
+        'file_on': 'file',
+        'store_on': 'store'  // Make sure store is included
     };
     
     // Turn off all filters
@@ -330,6 +336,7 @@ const filter_name_apply = () => {
         event_on   : 0,
         propt_on   : 0,
         file_on    : 0,
+        store_on   : 0,
         count_total: 0
     };
     
@@ -351,7 +358,7 @@ const filter_name_apply = () => {
         root_group_map[root_name].push(name_string);
         
         // Count the visible names by type
-        if (Object.keys(window.name_list_func).includes(name_string)) {
+        if (window.name_list_func[name_string]) {
             name_count.func_on++;
         } else if (window.name_list_class.includes(name_string)) {
             name_count.class_on++;
@@ -365,6 +372,8 @@ const filter_name_apply = () => {
             name_count.propt_on++;
         } else if (window.name_list_file.includes(name_string)) {
             name_count.file_on++;
+        } else if (window.name_list_store.includes(name_string)) {
+            name_count.store_on++;
         } else {
             name_count.var_on++;
         }
@@ -387,6 +396,7 @@ const filter_name_apply = () => {
         const name_event_element_list     = document.querySelectorAll('.name_event');
         const name_property_element_list  = document.querySelectorAll('.name_property');
         const name_file_element_list      = document.querySelectorAll('.name_file');
+        const name_store_element_list     = document.querySelectorAll('.name_store');
         
         name_function_element_list.forEach(element => {
             if (window.filter_on_list.func_on) {
@@ -451,6 +461,14 @@ const filter_name_apply = () => {
                 element.classList.add('name_hidden');
             }
         });
+        
+        name_store_element_list.forEach(element => {
+            if (window.filter_on_list.store_on) {
+                element.classList.remove('name_hidden');
+            } else {
+                element.classList.add('name_hidden');
+            }
+        });
     });
 };
 const filter_state_toggle = (filter_type) => {
@@ -465,7 +483,8 @@ const filter_state_toggle = (filter_type) => {
         'constant': 'const_on',
         'event': 'event_on',
         'property': 'propt_on',
-        'file': 'file_on'
+        'file': 'file_on',
+        'store': 'store_on'
     };
     
     const filter_property_on = filter_type_map[filter_type];
@@ -515,7 +534,8 @@ const filter_type_event_add = (button_element, type) => {
             'constant': 'const_on',
             'event': 'event_on',
             'property': 'propt_on',
-            'file': 'file_on'
+            'file': 'file_on',
+            'store': 'store_on'
         };
         const filter_property = type_to_property[type] || `${type}_on`;
         filter_exclusive_set(filter_property);
@@ -573,6 +593,7 @@ const name_filter_visible_is = (name_string) => {
     const name_type_property_is  = window.name_list_propt.includes(name_string);
     const name_type_file_is      = window.name_list_file.includes(name_string);
     const name_type_variable_is  = Object.keys(window.name_list_var).includes(name_string);
+    const name_type_store_is     = window.name_list_store.includes(name_string);
     
     if (name_type_function_is && !window.filter_on_list.func_on) {
         return false;
@@ -603,6 +624,10 @@ const name_filter_visible_is = (name_string) => {
     }
     
     if (name_type_variable_is && !window.filter_on_list.var_on) {
+        return false;
+    }
+    
+    if (name_type_store_is && !window.filter_on_list.store_on) {
         return false;
     }
     
@@ -658,11 +683,6 @@ const name_list_const_set = () => {
         'term_style_get'
     ];
     
-    // Store function names in the function list object
-    function_names.forEach(name => {
-        window.name_list_func[name] = name;
-    });
-    
     const variable_names = [
         'active_button_element',
         'active_filter_id',
@@ -708,13 +728,8 @@ const name_list_const_set = () => {
         'parent_element',
         'parens_element',
         'result',
-        'root_open_state',
-        'search_root_previous_state',
         'root_group_map',
         'root_name',
-        'roots_matched_by_search',
-        'search_timer',
-        'search_delay_ms',
         'search_query',
         'search_lower',
         'separator',
@@ -739,6 +754,40 @@ const name_list_const_set = () => {
         'variable_names',
         'visible_issue_is'
     ];
+    
+    const store_names = [
+        // Internal storage objects
+        'name_list_func',
+        'name_list_var',
+        'name_list_class',
+        'name_list_param',
+        'name_list_const',
+        'name_list_event',
+        'name_list_propt',
+        'name_list_file',
+        'name_list_store',
+        'filter_on_list',
+        'root_open_state',
+        'search_root_previous_state',
+        'search_root_match',
+        'search_timeout',
+        'search_delay_ms'
+    ];
+    
+    // Store function names in the function list object
+    function_names.forEach(name => {
+        window.name_list_func[name] = name;
+    });
+    
+    // Store variable names in the variable list object
+    variable_names.forEach(name => {
+        window.name_list_var[name] = name;
+    });
+    
+    // Store storage names in the storage list
+    store_names.forEach(name => {
+        window.name_list_store.push(name);
+    });
     
     const dom_class_names = [
         'app_container',
@@ -840,10 +889,6 @@ const name_list_const_set = () => {
     window.name_list_propt = property_names;
     window.name_list_file = file_names;
     
-    variable_names.forEach(name => {
-        window.name_list_var[name] = name;
-    });
-    
     const name_type_list_set = [
         ...function_names, 
         ...variable_names, 
@@ -871,6 +916,7 @@ const name_list_dom_render = (name_string, term_previous_list = null) => {
     const name_type_property_is  = window.name_list_propt.includes(name_string);
     const name_type_file_is      = window.name_list_file.includes(name_string);
     const name_type_variable_is  = Object.keys(window.name_list_var).includes(name_string);
+    const name_type_store_is     = window.name_list_store.includes(name_string);
     
     let type_class_name = 'name_variable';
     if (name_type_function_is) {
@@ -887,6 +933,8 @@ const name_list_dom_render = (name_string, term_previous_list = null) => {
         type_class_name = 'name_property';
     } else if (name_type_file_is) {
         type_class_name = 'name_file';
+    } else if (name_type_store_is) {
+        type_class_name = 'name_store';
     }
     
     dom_element_class_add(name_element, type_class_name);
@@ -960,7 +1008,8 @@ const name_list_get = () => {
             ...window.name_list_const,
             ...window.name_list_event,
             ...window.name_list_propt,
-            ...window.name_list_file
+            ...window.name_list_file,
+            ...window.name_list_store
         ];
     }
     
@@ -994,7 +1043,7 @@ const search_apply = (search_query) => {
     // When starting a new search (either first search or changing search terms)
     if (search_query && search_query !== previous_search) {
         // Reset matched roots for new search
-        window.roots_matched_by_search = {};
+        window.search_root_match = {};
     }
     
     // Update the filter state with the new search query
@@ -1012,7 +1061,7 @@ const search_apply = (search_query) => {
                 const root_name = root_extract(name_string);
                 window.root_open_state[root_name] = true;
                 // Remember this root was matched for future reference
-                window.roots_matched_by_search[root_name] = true;
+                window.search_root_match[root_name] = true;
             }
         });
     } 
@@ -1022,7 +1071,7 @@ const search_apply = (search_query) => {
         window.root_open_state = { ...window.search_root_previous_state };
         
         // Then ensure roots that matched search remain open
-        Object.keys(window.roots_matched_by_search).forEach(root_name => {
+        Object.keys(window.search_root_match).forEach(root_name => {
             window.root_open_state[root_name] = true;
         });
     }
@@ -1185,7 +1234,7 @@ const root_close_all = () => {
     });
     
     // Clear matched search results when explicitly closing all
-    window.roots_matched_by_search = {};
+    window.search_root_match = {};
 };
 
 const root_group_create = (root_name, names_in_group, index_element) => {

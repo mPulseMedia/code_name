@@ -675,4 +675,39 @@ body {
 /* Style for directory parts */
 .name_file .term:not(:last-child) {
     font-weight: normal;
+}
+
+.name_store {
+    color: #9b59b6;  /* Purple color for storage items */
+}
+
+.name_store .term_white {
+    color: #9b59b6;
+}
+
+.name_store .separator_white {
+    color: #9b59b6;
+}
+
+#filter_store {
+    color: #9b59b6;
+}
+
+#filter_store.filter_active {
+    background-color: rgba(155, 89, 182, 0.2);
+    border: 1px solid #9b59b6;
+}
+
+#filter_store:hover {
+    background-color: rgba(155, 89, 182, 0.1);
+    border: 1px solid rgba(155, 89, 182, 0.7);
+}
+
+#filter_store.filter_active:hover {
+    background-color: rgba(155, 89, 182, 0.3);
+    border: 1px solid #9b59b6;
+}
+
+.root_term_store .root_term_text {
+    color: #9b59b6;
 } 
