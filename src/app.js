@@ -1,12 +1,11 @@
-window.app_function_list  = {};
-window.app_variable_list  = {};
-window.function_name_list = [];
-window.dom_class_name_list = [];
-window.parameter_name_list = [];
-window.constant_name_list  = [];
-window.event_name_list     = [];
-window.property_name_list  = [];
-window.file_name_list      = [];
+window.name_type_function_list = {};
+window.name_type_variable_list = {};
+window.name_type_class_list = [];
+window.name_type_parameter_list = [];
+window.name_type_const_list = [];
+window.name_type_event_list = [];
+window.name_type_property_list = [];
+window.name_type_file_list = [];
 window.filter_state       = {
     // Identifier type filters
     function_is  : true,
@@ -16,14 +15,14 @@ window.filter_state       = {
     constant_is  : true,
     event_is     : true,
     property_is  : true,
-    file_is      : true,
+    file_is      : true,  // New filter for file names
     
     // Search filter
     search_query : ''
 };
 
-// Track expanded state of root terms
-window.root_expanded_state = {};
+// Track open state of root terms
+window.root_open_state = {};
 window.search_root_previous_state = {};
 window.roots_matched_by_search = {};
 window.search_timer = null;
@@ -31,7 +30,7 @@ window.search_delay_ms = 300; // Time to wait after typing stops
 
 // App functions
 const app_event_listener_setup = () => {
-    window.app_function_list['app_event_listener_setup'] = app_event_listener_setup;
+    window.name_type_function_list['app_event_listener_setup'] = app_event_listener_setup;
     // Type filter buttons
     const filter_function_element  = document.getElementById('filter_function');
     const filter_variable_element  = document.getElementById('filter_variable');
@@ -68,21 +67,21 @@ const app_event_listener_setup = () => {
     const root_toggle_all_element = document.getElementById('root_toggle_all');
     
     if (root_toggle_all_element) {
-        // Track current state - start with "will expand all" (▶)
-        let all_expanded = false;
+        // Track current state - start with "will open all" (▶)
+        let all_opened = false;
         
         root_toggle_all_element.addEventListener('click', () => {
-            all_expanded = !all_expanded;
+            all_opened = !all_opened;
             
-            if (all_expanded) {
+            if (all_opened) {
                 // Change to "will collapse all" state
                 dom_element_text_set(root_toggle_all_element, '▼');
                 root_toggle_all_element.title = 'Collapse all roots';
                 root_open_all();
             } else {
-                // Change to "will expand all" state
+                // Change to "will open all" state
                 dom_element_text_set(root_toggle_all_element, '▶');
-                root_toggle_all_element.title = 'Expand all roots';
+                root_toggle_all_element.title = 'Open all roots';
                 root_close_all();
             }
         });
@@ -139,7 +138,7 @@ const app_event_listener_setup = () => {
     }
 };
 const app_init = () => {
-    window.app_function_list['app_init'] = app_init;
+    window.name_type_function_list['app_init'] = app_init;
     
     app_event_listener_setup();
     name_list_const_set();
@@ -154,7 +153,7 @@ const app_init = () => {
 
 // Array functions
 const array_sort_alphabetically = (array_input) => {
-    window.app_function_list['array_sort_alphabetically'] = array_sort_alphabetically;
+    window.name_type_function_list['array_sort_alphabetically'] = array_sort_alphabetically;
     return [...array_input].sort((a, b) => {
         const a_lower = String(a).toLowerCase();
         const b_lower = String(b).toLowerCase();
@@ -164,28 +163,28 @@ const array_sort_alphabetically = (array_input) => {
 
 // DOM functions
 const dom_element_append = (parent_element, child_element) => {
-    window.app_function_list['dom_element_append'] = dom_element_append;
+    window.name_type_function_list['dom_element_append'] = dom_element_append;
     parent_element.appendChild(child_element);
     return parent_element;
 };
 const dom_element_class_add = (target_element, class_name) => {
-    window.app_function_list['dom_element_class_add'] = dom_element_class_add;
+    window.name_type_function_list['dom_element_class_add'] = dom_element_class_add;
     target_element.classList.add(class_name);
     return target_element;
 };
 const dom_element_create = (element_tag) => {
-    window.app_function_list['dom_element_create'] = dom_element_create;
+    window.name_type_function_list['dom_element_create'] = dom_element_create;
     return document.createElement(element_tag);
 };
 const dom_element_text_set = (target_element, text_content) => {
-    window.app_function_list['dom_element_text_set'] = dom_element_text_set;
+    window.name_type_function_list['dom_element_text_set'] = dom_element_text_set;
     target_element.textContent = text_content;
     return target_element;
 };
 
 // Filter functions
 const filter_all_reset = () => {
-    window.app_function_list['filter_all_reset'] = filter_all_reset;
+    window.name_type_function_list['filter_all_reset'] = filter_all_reset;
     
     // Turn on all filters
     for (const filter_type in window.filter_state) {
@@ -218,27 +217,27 @@ const filter_all_reset = () => {
     // Apply the filter
     filter_name_apply();
     
-    // After filter is applied, close all expanded root items
-    const expanded_carets = document.querySelectorAll('.root_term_caret.expanded');
-    const expanded_contents = document.querySelectorAll('.root_term_content.expanded');
+    // After filter is applied, close all opened root items
+    const opened_carets = document.querySelectorAll('.root_term_caret.expanded');
+    const opened_contents = document.querySelectorAll('.root_term_content.expanded');
     
     // Remove expanded class from carets and set text to closed state
-    expanded_carets.forEach(caret => {
+    opened_carets.forEach(caret => {
         root_toggle(caret);
     });
     
     // Remove expanded class from content elements
-    expanded_contents.forEach(content => {
+    opened_contents.forEach(content => {
         content.classList.remove('expanded');
     });
     
-    // Clear all saved expanded states
-    window.root_expanded_state = {};
+    // Clear all saved open states
+    window.root_open_state = {};
     // Also clear search history when resetting filters
     window.roots_matched_by_search = {};
 };
 const filter_count_visible_check = () => {
-    window.app_function_list['filter_count_visible_check'] = filter_count_visible_check;
+    window.name_type_function_list['filter_count_visible_check'] = filter_count_visible_check;
     
     const name_visible_count = document.querySelectorAll('.name:not(.name_hidden)').length;
     const name_total_count   = document.querySelectorAll('.name').length;
@@ -250,7 +249,7 @@ const filter_count_visible_check = () => {
     }
 };
 const filter_exclusive_set = (active_filter_type) => {
-    window.app_function_list['filter_exclusive_set'] = filter_exclusive_set;
+    window.name_type_function_list['filter_exclusive_set'] = filter_exclusive_set;
     
     // Turn off all filters
     for (const filter_type in window.filter_state) {
@@ -281,7 +280,7 @@ const filter_exclusive_set = (active_filter_type) => {
     filter_name_apply();
 };
 const filter_name_apply = () => {
-    window.app_function_list['filter_name_apply'] = filter_name_apply;
+    window.name_type_function_list['filter_name_apply'] = filter_name_apply;
     
     const index_element = document.getElementById('index');
     if (!index_element) {
@@ -322,19 +321,19 @@ const filter_name_apply = () => {
         root_group_map[root_name].push(name_string);
         
         // Count the visible names by type
-        if (window.function_name_list.includes(name_string)) {
+        if (Object.keys(window.name_type_function_list).includes(name_string)) {
             name_count.function_is++;
-        } else if (window.dom_class_name_list.includes(name_string)) {
+        } else if (window.name_type_class_list.includes(name_string)) {
             name_count.class_is++;
-        } else if (window.parameter_name_list.includes(name_string)) {
+        } else if (window.name_type_parameter_list.includes(name_string)) {
             name_count.parameter_is++;
-        } else if (window.constant_name_list.includes(name_string)) {
+        } else if (window.name_type_const_list.includes(name_string)) {
             name_count.constant_is++;
-        } else if (window.event_name_list.includes(name_string)) {
+        } else if (window.name_type_event_list.includes(name_string)) {
             name_count.event_is++;
-        } else if (window.property_name_list.includes(name_string)) {
+        } else if (window.name_type_property_list.includes(name_string)) {
             name_count.property_is++;
-        } else if (window.file_name_list.includes(name_string)) {
+        } else if (window.name_type_file_list.includes(name_string)) {
             name_count.file_is++;
         } else {
             name_count.variable_is++;
@@ -425,7 +424,7 @@ const filter_name_apply = () => {
     });
 };
 const filter_state_toggle = (filter_type) => {
-    window.app_function_list['filter_state_toggle'] = filter_state_toggle;
+    window.name_type_function_list['filter_state_toggle'] = filter_state_toggle;
     const filter_property_is = `${filter_type}_is`;
     
     window.filter_state[filter_property_is] = !window.filter_state[filter_property_is];
@@ -440,7 +439,7 @@ const filter_state_toggle = (filter_type) => {
     filter_name_apply();
 };
 const filter_type_class_event_add = (button_element) => {
-    window.app_function_list['filter_type_class_event_add'] = filter_type_class_event_add;
+    window.name_type_function_list['filter_type_class_event_add'] = filter_type_class_event_add;
     
     // Single click: toggle this filter
     button_element.addEventListener('click', () => {
@@ -454,7 +453,7 @@ const filter_type_class_event_add = (button_element) => {
     });
 };
 const filter_type_event_add = (button_element, type) => {
-    window.app_function_list['filter_type_event_add'] = filter_type_event_add;
+    window.name_type_function_list['filter_type_event_add'] = filter_type_event_add;
     
     // Single click: toggle this filter
     button_element.addEventListener('click', (event) => {
@@ -468,7 +467,7 @@ const filter_type_event_add = (button_element, type) => {
     });
 };
 const filter_type_function_event_add = (button_element) => {
-    window.app_function_list['filter_type_function_event_add'] = filter_type_function_event_add;
+    window.name_type_function_list['filter_type_function_event_add'] = filter_type_function_event_add;
     
     // Single click: toggle this filter
     button_element.addEventListener('click', () => {
@@ -482,7 +481,7 @@ const filter_type_function_event_add = (button_element) => {
     });
 };
 const filter_type_variable_event_add = (button_element) => {
-    window.app_function_list['filter_type_variable_event_add'] = filter_type_variable_event_add;
+    window.name_type_function_list['filter_type_variable_event_add'] = filter_type_variable_event_add;
     
     // Single click: toggle this filter
     button_element.addEventListener('click', () => {
@@ -498,33 +497,27 @@ const filter_type_variable_event_add = (button_element) => {
 
 // Index functions
 const index_dom_render = () => {
-    window.app_function_list['index_dom_render'] = index_dom_render;
+    window.name_type_function_list['index_dom_render'] = index_dom_render;
     filter_name_apply();
 };
 
 // Name functions
 const name_filter_visible_is = (name_string) => {
-    window.app_function_list['name_filter_visible_is'] = name_filter_visible_is;
+    window.name_type_function_list['name_filter_visible_is'] = name_filter_visible_is;
     
     if (!name_string) {
         return false;
     }
     
     // Check type filters
-    const name_type_function_is  = Array.isArray(window.function_name_list) && window.function_name_list.includes(name_string);
-    const name_type_class_is     = Array.isArray(window.dom_class_name_list) && window.dom_class_name_list.includes(name_string);
-    const name_type_parameter_is = Array.isArray(window.parameter_name_list) && window.parameter_name_list.includes(name_string);
-    const name_type_constant_is  = Array.isArray(window.constant_name_list) && window.constant_name_list.includes(name_string);
-    const name_type_event_is     = Array.isArray(window.event_name_list) && window.event_name_list.includes(name_string);
-    const name_type_property_is  = Array.isArray(window.property_name_list) && window.property_name_list.includes(name_string);
-    const name_type_file_is      = Array.isArray(window.file_name_list) && window.file_name_list.includes(name_string);
-    const name_type_variable_is  = !name_type_function_is && 
-                                   !name_type_class_is && 
-                                   !name_type_parameter_is && 
-                                   !name_type_constant_is && 
-                                   !name_type_event_is && 
-                                   !name_type_property_is &&
-                                   !name_type_file_is;
+    const name_type_function_is  = Object.keys(window.name_type_function_list).includes(name_string);
+    const name_type_class_is     = window.name_type_class_list.includes(name_string);
+    const name_type_parameter_is = window.name_type_parameter_list.includes(name_string);
+    const name_type_constant_is  = window.name_type_const_list.includes(name_string);
+    const name_type_event_is     = window.name_type_event_list.includes(name_string);
+    const name_type_property_is  = window.name_type_property_list.includes(name_string);
+    const name_type_file_is      = window.name_type_file_list.includes(name_string);
+    const name_type_variable_is  = Object.keys(window.name_type_variable_list).includes(name_string);
     
     if (name_type_function_is && !window.filter_state.function_is) {
         return false;
@@ -567,7 +560,7 @@ const name_filter_visible_is = (name_string) => {
     return true;
 };
 const name_list_const_set = () => {
-    window.app_function_list['name_list_const_set'] = name_list_const_set;
+    window.name_type_function_list['name_list_const_set'] = name_list_const_set;
     
     const function_names = [
         'app_event_listener_setup',
@@ -610,19 +603,24 @@ const name_list_const_set = () => {
         'term_style_get'
     ];
     
+    // Store function names in the function list object
+    function_names.forEach(name => {
+        window.name_type_function_list[name] = name;
+    });
+    
     const variable_names = [
         'active_button_element',
         'active_filter_id',
         'active_filter_type',
-        'app_function_list',
-        'app_variable_list',
+        'name_type_function_list',
+        'name_type_variable_list',
         'array_input',
         'button_element',
         'child_element',
         'class_is',
         'class_name',
         'count_total',
-        'dom_class_name_list',
+        'name_type_class_list',
         'element_tag',
         'filter_class_element',
         'filter_function_element',
@@ -633,7 +631,7 @@ const name_list_const_set = () => {
         'filter_type',
         'filter_variable_element',
         'function_is',
-        'function_name_list',
+        'name_type_parameter_list',
         'index_element',
         'message',
         'name_class_element_list',
@@ -656,7 +654,7 @@ const name_list_const_set = () => {
         'parent_element',
         'parens_element',
         'result',
-        'root_expanded_state',
+        'root_open_state',
         'search_root_previous_state',
         'root_group_map',
         'root_name',
@@ -766,6 +764,9 @@ const name_list_const_set = () => {
         'index.html',
         'README.md',
         'server.js',
+        '.gitignore',
+        '.eslintrc.json',
+        '.env',
         
         // Project folders
         'src/',
@@ -774,19 +775,19 @@ const name_list_const_set = () => {
         'src/app.js',
         'src/index.html',
         'src/styles.css',
-        'src/styles.css.bak'
+        'src/styles.css.bak',
+        'src/.env.local'
     ];
     
-    window.function_name_list = function_names;
-    window.dom_class_name_list = dom_class_names;
-    window.parameter_name_list = parameter_names;
-    window.constant_name_list = constant_names;
-    window.event_name_list = event_names;
-    window.property_name_list = property_names;
-    window.file_name_list = file_names;
+    window.name_type_class_list = dom_class_names;
+    window.name_type_parameter_list = parameter_names;
+    window.name_type_const_list = constant_names;
+    window.name_type_event_list = event_names;
+    window.name_type_property_list = property_names;
+    window.name_type_file_list = file_names;
     
     variable_names.forEach(name => {
-        window.app_variable_list[name] = name;
+        window.name_type_variable_list[name] = name;
     });
     
     const name_type_list_set = [
@@ -803,25 +804,19 @@ const name_list_const_set = () => {
     return name_type_list_set;
 };
 const name_list_dom_render = (name_string, term_previous_list = null) => {
-    window.app_function_list['name_list_dom_render'] = name_list_dom_render;
+    window.name_type_function_list['name_list_dom_render'] = name_list_dom_render;
     
     const name_element = dom_element_create('li');
     dom_element_class_add(name_element, 'name');
     
-    const name_type_function_is  = Array.isArray(window.function_name_list) && window.function_name_list.includes(name_string);
-    const name_type_class_is     = Array.isArray(window.dom_class_name_list) && window.dom_class_name_list.includes(name_string);
-    const name_type_parameter_is = Array.isArray(window.parameter_name_list) && window.parameter_name_list.includes(name_string);
-    const name_type_constant_is  = Array.isArray(window.constant_name_list) && window.constant_name_list.includes(name_string);
-    const name_type_event_is     = Array.isArray(window.event_name_list) && window.event_name_list.includes(name_string);
-    const name_type_property_is  = Array.isArray(window.property_name_list) && window.property_name_list.includes(name_string);
-    const name_type_file_is      = Array.isArray(window.file_name_list) && window.file_name_list.includes(name_string);
-    const name_type_variable_is  = !name_type_function_is && 
-                                   !name_type_class_is && 
-                                   !name_type_parameter_is && 
-                                   !name_type_constant_is && 
-                                   !name_type_event_is && 
-                                   !name_type_property_is &&
-                                   !name_type_file_is;
+    const name_type_function_is  = Object.keys(window.name_type_function_list).includes(name_string);
+    const name_type_class_is     = window.name_type_class_list.includes(name_string);
+    const name_type_parameter_is = window.name_type_parameter_list.includes(name_string);
+    const name_type_constant_is  = window.name_type_const_list.includes(name_string);
+    const name_type_event_is     = window.name_type_event_list.includes(name_string);
+    const name_type_property_is  = window.name_type_property_list.includes(name_string);
+    const name_type_file_is      = window.name_type_file_list.includes(name_string);
+    const name_type_variable_is  = Object.keys(window.name_type_variable_list).includes(name_string);
     
     let type_class_name = 'name_variable';
     if (name_type_function_is) {
@@ -877,13 +872,11 @@ const name_list_dom_render = (name_string, term_previous_list = null) => {
             // Choose the right separator based on the name type
             let separator_char = '_';  // Default for most identifiers
             
-            // If it's a file path, use / or . as appropriate
-            if (name_type_file_is) {
+            // Only handle file paths with slashes specially
+            if (name_type_file_is && name_string.includes('/')) {
                 // Check if term ends with /, indicating it's a directory part
                 if (term.endsWith('/')) {
                     separator_char = '';  // No separator needed as / is already in the term
-                } else if (index === term_list.length - 2 && !term_list[term_list.length - 1].includes('/')) {
-                    separator_char = '.';  // Use . between filename and extension
                 } else {
                     separator_char = '/';  // Use / for path elements
                 }
@@ -902,31 +895,31 @@ const name_list_dom_render = (name_string, term_previous_list = null) => {
     };
 };
 const name_list_get = () => {
-    window.app_function_list['name_list_get'] = name_list_get;
+    window.name_type_function_list['name_list_get'] = name_list_get;
     
-    if (window.function_name_list.length > 0) {
+    if (window.name_type_class_list.length > 0) {
         return [
-            ...window.function_name_list,
-            ...Object.keys(window.app_variable_list),
-            ...window.dom_class_name_list,
-            ...window.parameter_name_list,
-            ...window.constant_name_list,
-            ...window.event_name_list,
-            ...window.property_name_list,
-            ...window.file_name_list
+            ...Object.keys(window.name_type_function_list),
+            ...Object.keys(window.name_type_variable_list),
+            ...window.name_type_class_list,
+            ...window.name_type_parameter_list,
+            ...window.name_type_const_list,
+            ...window.name_type_event_list,
+            ...window.name_type_property_list,
+            ...window.name_type_file_list
         ];
     }
     
     return name_list_const_set();
 };
 const name_list_order_get = () => {
-    window.app_function_list['name_list_order_get'] = name_list_order_get;
+    window.name_type_function_list['name_list_order_get'] = name_list_order_get;
     
     const name_list = name_list_get();
     return array_sort_alphabetically(name_list);
 };
 const search_apply = (search_query) => {
-    window.app_function_list['search_apply'] = search_apply;
+    window.name_type_function_list['search_apply'] = search_apply;
     
     // Validate and normalize the query
     search_query = search_query_validate(search_query);
@@ -939,7 +932,7 @@ const search_apply = (search_query) => {
     // Entering search mode for the first time
     if (!window.filter_state.search_query && search_query) {
         // Save current state before modifying for search
-        window.search_root_previous_state = { ...window.root_expanded_state };
+        window.search_root_previous_state = { ...window.root_open_state };
     }
     
     const previous_search = window.filter_state.search_query;
@@ -961,9 +954,9 @@ const search_apply = (search_query) => {
         // Find all names that match the search
         all_names.forEach(name_string => {
             if (search_matches(name_string, search_lower)) {
-                // Get the root term and mark it for expansion
+                // Get the root term and mark it for opening
                 const root_name = root_extract(name_string);
-                window.root_expanded_state[root_name] = true;
+                window.root_open_state[root_name] = true;
                 // Remember this root was matched for future reference
                 window.roots_matched_by_search[root_name] = true;
             }
@@ -972,11 +965,11 @@ const search_apply = (search_query) => {
     // When exiting search mode (had search, now cleared)
     else if (previous_search && !search_query) {
         // First restore the state from before search
-        window.root_expanded_state = { ...window.search_root_previous_state };
+        window.root_open_state = { ...window.search_root_previous_state };
         
         // Then ensure roots that matched search remain open
         Object.keys(window.roots_matched_by_search).forEach(root_name => {
-            window.root_expanded_state[root_name] = true;
+            window.root_open_state[root_name] = true;
         });
     }
     
@@ -986,7 +979,7 @@ const search_apply = (search_query) => {
 
 // Helper function to validate and normalize a search query
 const search_query_validate = (query) => {
-    window.app_function_list['search_query_validate'] = search_query_validate;
+    window.name_type_function_list['search_query_validate'] = search_query_validate;
     
     // Trim whitespace
     query = query ? query.trim() : '';
@@ -997,7 +990,7 @@ const search_query_validate = (query) => {
 
 // Helper function to determine if a name matches the search
 const search_matches = (name_string, search_lower) => {
-    window.app_function_list['search_matches'] = search_matches;
+    window.name_type_function_list['search_matches'] = search_matches;
     
     // Check if full name contains the search text
     const name_lower = name_string.toLowerCase();
@@ -1018,14 +1011,14 @@ const search_matches = (name_string, search_lower) => {
 
 // String functions
 const string_by_separator_split = (string, separator) => {
-    window.app_function_list['string_by_separator_split'] = string_by_separator_split;
+    window.name_type_function_list['string_by_separator_split'] = string_by_separator_split;
     
     return string.split(separator);
 };
 
 // Term functions
 const term_list_compare = (term_list, term_previous_list) => {
-    window.app_function_list['term_list_compare'] = term_list_compare;
+    window.name_type_function_list['term_list_compare'] = term_list_compare;
     
     if (!term_previous_list) return term_list.map(() => false);
     
@@ -1046,29 +1039,24 @@ const term_list_compare = (term_list, term_previous_list) => {
     return result;
 };
 const term_list_extract = (name_string) => {
-    window.app_function_list['term_list_extract'] = term_list_extract;
+    window.name_type_function_list['term_list_extract'] = term_list_extract;
     
-    // Special handling for file paths
-    if (name_string.includes('/') || name_string.includes('.')) {
-        if (name_string.includes('/')) {
-            // For paths, split by '/' but keep the structure
-            return name_string.split('/').filter(Boolean);
-        } else if (name_string.includes('.')) {
-            // For files, separate the name from extension
-            const parts = name_string.split('.');
-            if (parts.length > 1) {
-                const extension = parts.pop();
-                const filename = parts.join('.');
-                return [filename, extension];
-            }
-        }
+    // Special handling for file paths with slashes only
+    if (name_string.includes('/')) {
+        // For paths, split by '/' but keep the structure
+        return name_string.split('/').filter(Boolean);
     }
     
-    // Default behavior for underscore-separated names
-    return string_by_separator_split(name_string, '_');
+    // Only split by underscores, no special treatment for dots
+    if (name_string.includes('_')) {
+        return string_by_separator_split(name_string, '_');
+    }
+    
+    // If there are no separators, return the whole string as a single term
+    return [name_string];
 };
 const term_style_get = (term_same_is) => {
-    window.app_function_list['term_style_get'] = term_style_get;
+    window.name_type_function_list['term_style_get'] = term_style_get;
     
     return term_same_is ? 'term_gray' : 'term_white';
 };
@@ -1078,32 +1066,27 @@ document.addEventListener('DOMContentLoaded', app_init);
 
 // Root functions
 const root_extract = (name_string) => {
-    window.app_function_list['root_extract'] = root_extract;
+    window.name_type_function_list['root_extract'] = root_extract;
     
-    // Check if this is a file path (contains / or .)
-    if (name_string.includes('/') || name_string.includes('.')) {
-        // For files with paths, use directory or extension as the grouping
-        if (name_string.includes('/')) {
-            // For directory paths, use the first directory as the root
-            return name_string.split('/')[0] + '/';
-        } else {
-            // For files with extensions but no path, use the extension
-            const parts = name_string.split('.');
-            if (parts.length > 1) {
-                return '.' + parts[parts.length - 1]; // Use extension with dot prefix
-            }
-        }
+    // Special handling for directory paths only
+    if (name_string.includes('/')) {
+        // For directory paths, use the first directory as the root
+        return name_string.split('/')[0] + '/';
     }
     
-    // Default to the first underscore-separated term
-    const term_list = term_list_extract(name_string);
-    return term_list[0];
+    // Only look for underscores, don't split on dots
+    if (name_string.includes('_')) {
+        return name_string.split('_')[0];
+    }
+    
+    // If no underscores, use the full name as the root
+    return name_string;
 };
 
 const root_open_all = () => {
-    window.app_function_list['root_open_all'] = root_open_all;
+    window.name_type_function_list['root_open_all'] = root_open_all;
     
-    // Get all root groups that are not already expanded
+    // Get all root groups that are not already opened
     const headers = document.querySelectorAll('.root_term_header:not(.root_header_hidden)');
     
     // For each header, get its content and toggle it open
@@ -1125,9 +1108,9 @@ const root_open_all = () => {
 };
 
 const root_close_all = () => {
-    window.app_function_list['root_close_all'] = root_close_all;
+    window.name_type_function_list['root_close_all'] = root_close_all;
     
-    // Get all expanded root contents
+    // Get all opened root contents
     const contents = document.querySelectorAll('.root_term_content.expanded');
     
     // For each content, find its header and toggle it closed
@@ -1152,7 +1135,7 @@ const root_close_all = () => {
 };
 
 const root_group_create = (root_name, names_in_group, index_element) => {
-    window.app_function_list['root_group_create'] = root_group_create;
+    window.name_type_function_list['root_group_create'] = root_group_create;
     
     if (names_in_group.length === 0) return null;
     
@@ -1186,7 +1169,7 @@ const root_group_create = (root_name, names_in_group, index_element) => {
 };
 
 const root_header_create = (root_name, predominant_type) => {
-    window.app_function_list['root_header_create'] = root_header_create;
+    window.name_type_function_list['root_header_create'] = root_header_create;
     
     const header_element = dom_element_create('div');
     dom_element_class_add(header_element, 'root_term_header');
@@ -1213,7 +1196,7 @@ const root_header_create = (root_name, predominant_type) => {
 };
 
 const root_content_create = (names_in_group) => {
-    window.app_function_list['root_content_create'] = root_content_create;
+    window.name_type_function_list['root_content_create'] = root_content_create;
     
     const content_element = dom_element_create('div');
     dom_element_class_add(content_element, 'root_term_content');
@@ -1238,7 +1221,7 @@ const root_content_create = (names_in_group) => {
 };
 
 const root_connect = (header_element, content_element, root_name) => {
-    window.app_function_list['root_connect'] = root_connect;
+    window.name_type_function_list['root_connect'] = root_connect;
     
     const caret_element = header_element.querySelector('.root_term_caret');
     const root_text_element = header_element.querySelector('.root_term_text');
@@ -1257,9 +1240,9 @@ const root_connect = (header_element, content_element, root_name) => {
         }, 1000);
     });
     
-    // Apply saved expanded state if it exists
-    if (window.root_expanded_state[root_name]) {
-        // Expand the content
+    // Apply saved open state if it exists
+    if (window.root_open_state[root_name]) {
+        // Open the content
         content_element.classList.add('expanded');
         
         // Hide the header
@@ -1276,7 +1259,7 @@ const root_connect = (header_element, content_element, root_name) => {
     
     // Add click event to the first child's caret (when header is hidden)
     content_element.addEventListener('click', (event) => {
-        // Only process clicks when content is expanded
+        // Only process clicks when content is opened
         if (!content_element.classList.contains('expanded')) return;
         
         const firstChild = content_element.querySelector('.name:first-child');
@@ -1299,15 +1282,15 @@ const root_connect = (header_element, content_element, root_name) => {
 
 // New helper function to toggle root groups
 const toggleRootGroup = (header_element, content_element, root_name) => {
-    window.app_function_list['toggleRootGroup'] = toggleRootGroup;
+    window.name_type_function_list['toggleRootGroup'] = toggleRootGroup;
     
-    const isExpanded = !content_element.classList.contains('expanded');
+    const isOpen = !content_element.classList.contains('expanded');
     
     // Toggle content visibility
     content_element.classList.toggle('expanded');
     
     // Toggle header visibility
-    if (isExpanded) {
+    if (isOpen) {
         header_element.classList.add('root_header_hidden');
         
         // Add root indicator class to first item
@@ -1325,24 +1308,24 @@ const toggleRootGroup = (header_element, content_element, root_name) => {
         });
     }
     
-    // Save the expanded state for this root term
-    window.root_expanded_state[root_name] = isExpanded;
+    // Save the open state for this root term
+    window.root_open_state[root_name] = isOpen;
 };
 
 const root_toggle = (caret_element) => {
-    window.app_function_list['root_toggle'] = root_toggle;
+    window.name_type_function_list['root_toggle'] = root_toggle;
     
-    const isExpanded = caret_element.classList.toggle('expanded');
-    if (isExpanded) {
+    const isOpen = caret_element.classList.toggle('expanded');
+    if (isOpen) {
         dom_element_text_set(caret_element, '▼');
     } else {
         dom_element_text_set(caret_element, '▶');
     }
-    return isExpanded;
+    return isOpen;
 };
 
 const root_type_determine = (names_in_group) => {
-    window.app_function_list['root_type_determine'] = root_type_determine;
+    window.name_type_function_list['root_type_determine'] = root_type_determine;
     
     const type_counts = {
         function: 0,
@@ -1354,26 +1337,33 @@ const root_type_determine = (names_in_group) => {
         property: 0
     };
     
-    names_in_group.forEach(name => {
-        if (window.function_name_list.includes(name)) type_counts.function++;
-        else if (window.dom_class_name_list.includes(name)) type_counts.class++;
-        else if (window.parameter_name_list.includes(name)) type_counts.parameter++;
-        else if (window.constant_name_list.includes(name)) type_counts.constant++;
-        else if (window.event_name_list.includes(name)) type_counts.event++;
-        else if (window.property_name_list.includes(name)) type_counts.property++;
-        else type_counts.variable++;
-    });
-    
-    // Find the type with highest count
-    let max_count = 0;
-    let predominant_type = 'variable'; // Default
-    
-    Object.entries(type_counts).forEach(([type, count]) => {
-        if (count > max_count) {
-            max_count = count;
-            predominant_type = type;
+    names_in_group.forEach(name_string => {
+        if (Object.keys(window.name_type_function_list).includes(name_string)) {
+            type_counts.function++;
+        } else if (window.name_type_class_list.includes(name_string)) {
+            type_counts.class++;
+        } else if (window.name_type_parameter_list.includes(name_string)) {
+            type_counts.parameter++;
+        } else if (window.name_type_const_list.includes(name_string)) {
+            type_counts.constant++;
+        } else if (window.name_type_event_list.includes(name_string)) {
+            type_counts.event++;
+        } else if (window.name_type_property_list.includes(name_string)) {
+            type_counts.property++;
+        } else {
+            type_counts.variable++;
         }
     });
+    
+    let predominant_type = 'variable';
+    let max_count = 0;
+    
+    for (const type in type_counts) {
+        if (type_counts[type] > max_count) {
+            predominant_type = type;
+            max_count = type_counts[type];
+        }
+    }
     
     return predominant_type;
 };

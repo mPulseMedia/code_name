@@ -438,12 +438,12 @@ body {
     position:         relative;
 }
 
-/* Style for hiding the root header when expanded but keeping the caret */
+/* Style for hiding the root header when opened but keeping the caret */
 .root_header_hidden {
     display: none;
 }
 
-/* Keep the caret visible on the first item of expanded content */
+/* Keep the caret visible on the first item of opened content */
 .root_term_content.expanded > .name:first-child {
     position: relative;
 }
@@ -566,13 +566,13 @@ body {
     color:            #fff;
 }
 
-/* Add styling for the expand/collapse buttons */
+/* Add styling for the open/close buttons */
 #root_toggle_all {
     margin-right:     10px;
     font-size:        16px;
 }
 
-/* Special styling for the first item in expanded content (root item) */
+/* Special styling for the first item in opened content (root item) */
 .root_item {
     padding-bottom: 4px !important;
     margin-bottom: 4px !important;
