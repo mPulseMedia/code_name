@@ -33,6 +33,13 @@ body {
     transition:        all 0.3s ease;
 }
 
+.app_title h1 {
+    font-size: inherit;
+    font-weight: inherit;
+    margin: 0;
+    padding: 0;
+}
+
 .app_title::before {
     content:           '';
     position:          absolute;
@@ -961,4 +968,73 @@ body {
 .root_term_header:hover,
 .root_term_content .name:hover {
     background-color: rgba(97, 218, 251, 0.1);
+}
+
+/* Add media queries for responsive title */
+@media (max-width: 768px) {
+    .app_title {
+        font-size: 30px;
+        letter-spacing: 2px;
+        margin-bottom: 20px;
+        padding: 12px 0;
+    }
+    
+    .app_title::after {
+        width: 100px;
+    }
+    
+    body {
+        padding: 15px;
+    }
+}
+
+@media (max-width: 576px) {
+    .app_title {
+        font-size: 24px;
+        letter-spacing: 1.5px;
+        margin-bottom: 15px;
+        padding: 10px 0;
+    }
+    
+    .app_title::before {
+        width: 30px;
+    }
+    
+    .app_title::after {
+        width: 80px;
+        height: 2px;
+    }
+    
+    body {
+        padding: 12px;
+    }
+}
+
+@media (max-width: 360px) {
+    .app_title {
+        font-size: 20px;
+        letter-spacing: 1px;
+        margin-bottom: 12px;
+        padding: 8px 0;
+    }
+    
+    .app_title::before {
+        width: 20px;
+        height: 2px;
+    }
+    
+    .app_title::after {
+        width: 60px;
+        height: 2px;
+    }
+    
+    body {
+        padding: 10px;
+    }
+    
+    /* Adjust app container for tiny screens */
+    .app_container {
+        max-width: 100%;
+        padding: 0;
+    }
 } 
