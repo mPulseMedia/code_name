@@ -386,12 +386,24 @@ body {
     .filter_buttons_wrap {
         display: flex; /* Show wrapped buttons on smaller screens */
         margin-top: 10px;
+        flex-wrap: wrap;
+        justify-content: flex-start;
+        gap: 8px;
+        width: 100%;
     }
     
     .filter_top_row {
         flex-wrap: nowrap; /* Keep search and reset on the same row */
     }
+    
+    .filter {
+        flex: 0 0 auto; /* Don't let buttons grow or shrink */
+        min-width: auto; /* Allow buttons to be smaller */
+        font-size: 13px; /* Slightly smaller font */
+        padding: 5px 8px; /* Reduce padding */
+    }
 }
+/* Mobile device specific adjustments */
 @media (max-width: 576px) {
     .filter_top_row {
         flex-wrap: wrap; /* Allow wrapping on very small screens */
@@ -406,6 +418,53 @@ body {
         width: 100%;
         margin-top: 10px;
         justify-content: flex-end;
+    }
+    
+    .filter_buttons_wrap {
+        display: flex; /* Force display for mobile */
+        flex-wrap: wrap;
+        justify-content: flex-start;
+        margin-top: 12px;
+        width: 100%;
+        overflow-x: visible; /* Ensure filters wrap properly */
+    }
+    
+    .filter {
+        min-width: auto;
+        flex-grow: 0;
+        font-size: 12px; /* Even smaller font for mobile */
+        padding: 4px 6px; /* Reduced padding for mobile */
+        margin-bottom: 4px; /* Add vertical spacing */
+    }
+    
+    /* Make search input take full width */
+    #name_search_input {
+        min-width: 0; /* Allow it to be smaller */
+        flex: 1;
+    }
+    
+    /* Make sure filter container has adequate padding */
+    .filter_container {
+        padding: 10px;
+    }
+}
+/* Special handling for very small screens */
+@media (max-width: 360px) {
+    .filter {
+        flex: 0 0 calc(33.33% - 8px); /* Make buttons 3 per row */
+        font-size: 11px;
+        padding: 4px 5px;
+        text-align: center;
+        justify-content: center;
+    }
+    
+    .filter_buttons_wrap {
+        justify-content: space-between;
+    }
+    
+    /* Reduce padding further for very small screens */
+    .filter_container {
+        padding: 8px;
     }
 }
 .filter {

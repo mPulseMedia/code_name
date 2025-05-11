@@ -633,6 +633,10 @@ const initializeApp = () => {
         initializeCodeSnippets();
         log('APP.LOOKUP', 'Code snippets initialized for lookup');
         
+        // Set up mobile filter buttons
+        setupMobileFilterButtons();
+        log('APP.DOM', 'Mobile filter buttons setup completed');
+        
         // Set up event listeners
         app_event_listener_setup();
         log('APP.EVENT', 'Event listeners set up');
@@ -726,6 +730,11 @@ const initializeApp = () => {
             diag_log('Added indicator to first name element');
             console.log('Added indicator to first name element');
         }
+        
+        // Add a resize listener to handle mobile view changes
+        window.addEventListener('resize', () => {
+            setupMobileFilterButtons();
+        });
         
         diag_log('=== INITIALIZE APP COMPLETE ===');
         log('APP.INIT', 'App initialization completed successfully');
@@ -2227,7 +2236,7 @@ const filter_all_reset = () => {
         search_input.value = '';
     }
     
-    // Update button appearance
+    // Update button appearance for all filter buttons (both inline and wrap containers)
     const filter_buttons = document.querySelectorAll('.filter');
     filter_buttons.forEach(button => {
         button.classList.add('filter_active');
@@ -2763,3 +2772,74 @@ document.addEventListener('keydown', function(event) {
         }
     }
 });
+
+// Add a function to clone filter buttons for mobile view
+const setupMobileFilterButtons = () => {
+    const inlineButtonsContainer = document.querySelector('.filter_buttons_inline');
+    const wrapButtonsContainer = document.querySelector('.filter_buttons_wrap');
+    
+    if (!inlineButtonsContainer || !wrapButtonsContainer) {
+        console.error('Filter button containers not found');
+        return;
+    }
+    
+    // Clear any existing buttons in the wrap container
+    wrapButtonsContainer.innerHTML = '';
+    
+    // Clone each button from the inline container to the wrap container
+    const filterButtons = inlineButtonsContainer.querySelectorAll('.filter');
+    filterButtons.forEach(button => {
+        const clone = button.cloneNode(true);
+        
+        // Re-apply event listeners to the cloned button
+        clone.addEventListener('click', () => {
+            const filterId = button.id; // Get ID from original button
+            let filterProp = '';
+            
+            // Map button ID to filter property
+            if (filterId === 'filter_function') filterProp = 'func_on';
+            else if (filterId === 'filter_variable') filterProp = 'var_on';
+            else if (filterId === 'filter_class') filterProp = 'class_on';
+            else if (filterId === 'filter_parameter') filterProp = 'param_on';
+            else if (filterId === 'filter_constant') filterProp = 'const_on';
+            else if (filterId === 'filter_event') filterProp = 'event_on';
+            else if (filterId === 'filter_property') filterProp = 'propt_on';
+            else if (filterId === 'filter_file') filterProp = 'file_on';
+            else if (filterId === 'filter_window') filterProp = 'window_on';
+            
+            // Toggle filter state for both original and clone
+            filter_state_toggle(button, filterProp); // Toggle original
+            clone.classList.toggle('filter_active', window.filter_on_list[filterProp]); // Update clone state
+            
+            // Apply filter
+            filter_name_apply();
+        });
+        
+        // Add double-click handler for exclusive filtering
+        clone.addEventListener('dblclick', () => {
+            const filterId = button.id;
+            let filterProp = '';
+            
+            // Map button ID to filter property
+            if (filterId === 'filter_function') filterProp = 'func_on';
+            else if (filterId === 'filter_variable') filterProp = 'var_on';
+            else if (filterId === 'filter_class') filterProp = 'class_on';
+            else if (filterId === 'filter_parameter') filterProp = 'param_on';
+            else if (filterId === 'filter_constant') filterProp = 'const_on';
+            else if (filterId === 'filter_event') filterProp = 'event_on';
+            else if (filterId === 'filter_property') filterProp = 'propt_on';
+            else if (filterId === 'filter_file') filterProp = 'file_on';
+            else if (filterId === 'filter_window') filterProp = 'window_on';
+            
+            // Set exclusive filter
+            filter_exclusive_set(filterProp);
+            
+            // Apply filter
+            filter_name_apply();
+        });
+        
+        wrapButtonsContainer.appendChild(clone);
+    });
+    
+    console.log('Mobile filter buttons setup completed');
+};
