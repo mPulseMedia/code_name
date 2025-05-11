@@ -1,32 +1,61 @@
-# Function Name Index
+# Code Name Index
 
-A simple interactive web app that displays an alphabetically sorted index of its own function names in snake_case format.
+A clean, interactive web app that displays an alphabetically sorted index of its own function names, variable names, class names and more, organized by their root terms.
 
 ## Features
 
-- Displays all functions used in the creation of the app itself
-- Each function name consists of terms separated by underscores (`_`)
-- Each term is colored:
-  - **White** if the term is different from the term directly above it
-  - **Gray** if the term is the same as the term directly above it
-- Follows the `obj_subobj_attr_verb` naming convention (e.g., functions end with `_get`, `_is`, etc.)
+- Displays all code names used in the creation of the app itself, including:
+  - Functions
+  - Variables
+  - CSS Classes
+  - Parameters
+  - Constants
+  - Events
+  - Properties
+  - Files
+  - Window objects
+- Two-column layout with filter controls at the top
+- Names are organized by their root terms (first part of the name)
+- Root groups can be collapsed or expanded
+- Filter buttons for showing/hiding specific name types
+- Search functionality for finding specific names
+- Lookup panel that shows code snippets when clicking on a name
+- Each name has color-coded terms separated by underscores (`_`)
+  - **Color-coded** by type (functions, variables, classes, etc.)
+  - **Term highlighting** shows which terms are shared between names
 
 ## How to Run
 
-Simply open the `index.html` file in any modern web browser.
+Start an HTTP server in the project directory:
 
-## How It Works
+```
+npx http-server -p 8090
+```
 
-1. The app collects all function names used in its creation
-2. The names are sorted alphabetically and displayed as an index
-3. Each name is split into terms (parts separated by underscores)
-4. Each term is compared with the term in the same position in the previous function name
-5. Terms are colored white or gray based on this comparison
+Then open http://localhost:8090 in your browser.
 
-## Function Naming Convention
+## Key Components
 
-The app follows the `obj_subobj_attr_verb` structure for function naming:
-- Objects (app, function, dom, etc.)
-- Sub-objects if applicable
-- Attributes if applicable
-- Verbs (get, create, set, etc.) 
+### Filter Panel
+- Toggle buttons for each type of code name
+- Search field for filtering names
+- Root toggle button for expanding/collapsing all root groups
+- Reset All button to clear all filters
+
+### Index Panel
+- Names are organized by their root term (first part before underscore)
+- Root groups can be expanded or collapsed
+- Click on any name to copy it to clipboard and view its code snippets
+
+### Lookup Panel
+- Shows the selected name and relevant code snippets
+- Displays file paths and line numbers
+- Highlights lines where the name appears
+
+## Usage Tips
+
+- **Click** on a name to copy it and view code snippets
+- **Double-click** on a filter button to show only that type
+- Use the search box to filter names by text
+- Toggle root groups to organize your view
+- Click the Reset All button to clear all filters 

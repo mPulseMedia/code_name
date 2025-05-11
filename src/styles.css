@@ -2,12 +2,15 @@
     margin:            0;
     padding:           0;
     box-sizing:        border-box;
+    transform-style: preserve-3d;
 }
 body {
     font-family:       -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, 'Open Sans', 'Helvetica Neue', sans-serif;
     background-color:  #1e1e1e;
     color:             #ffffff;
     padding:           20px;
+    scrollbar-width: thin;
+    scrollbar-color: #444 transparent;
 }
 .app_container {
     max-width:         1200px;
@@ -91,27 +94,68 @@ body {
     border-radius:     8px;
     padding:           20px;
     box-shadow:        0 4px 6px rgba(0, 0, 0, 0.1);
+    width: 100%;
+    max-width: none;
+    overflow-y: auto;
+    margin-bottom: 20px;
+    position: relative;
+    transition: all 0.3s ease, top 0s, height 0s;
+    height: calc(100vh - 220px);
+    display: flex;
+    flex-direction: column;
+    scrollbar-width: thin;
+    scrollbar-color: #444 transparent;
 }
 .index {
     list-style-type:   none;
     line-height:       1;
+    flex-grow: 1;
+    overflow-y: auto;
 }
 .name, 
 .root_term_header {
-    padding:          6px 0;
-    margin:           2px 0;
-    font-family:      monospace;
-    font-size:        14px;
-    display:          flex;
-    cursor:           pointer;
-    border-radius:    4px;
-    transition:       background-color 0.2s ease;
-    position:         relative;
-    padding-right:    5px;
-    margin-left:      16px;
+    padding: 6px 10px;
+    padding-left: 30px;
+    margin: 0;
+    font-family: monospace;
+    font-size: 14px;
+    display: flex;
+    cursor: pointer;
+    transition: background-color 0.2s ease;
+    position: relative;
+    user-select: none;
+    transform: translateZ(0);
+    backface-visibility: hidden;
+    will-change: transform;
+    border-left: 2px solid transparent;
 }
 .name {
-    flex-wrap:        wrap;
+    position: relative;
+    cursor: pointer;
+    margin: 0;
+    border-radius: 4px;
+    height: 30px;
+    min-height: 30px;
+    max-height: 30px;
+    padding: 0 8px 0 30px !important;
+    display: flex;
+    align-items: center;
+    box-sizing: border-box;
+    transition: background-color 0.2s ease, outline 0.2s ease;
+    outline: 1px solid transparent;
+    transform: translateZ(0);
+    backface-visibility: hidden;
+    will-change: background-color, outline;
+    border-left: 2px solid transparent;
+}
+.name * {
+    pointer-events:   none !important; /* Prevent children from handling events */
+    z-index: 1;
+}
+.name:hover {
+    background-color: rgba(97, 218, 251, 0.1);
+    outline: 1px solid rgba(97, 218, 251, 0.3);
+    transform: none;
 }
 .name_function {
     color:             #f7dd72;
@@ -137,52 +181,56 @@ body {
 .name_file {
     color:             #2ecc71;
 }
-.name:hover {
-    background-color:  #3a3a3a;
-}
 .name.name_copied {
-    animation:         copy-flash 1s ease;
+    background-color: rgba(97, 218, 251, 0.3) !important;
+    outline: 1px solid rgba(97, 218, 251, 0.7) !important;
+    transition: none;
 }
 @keyframes copy-flash {
-    0% {
-        background-color: #3a3a3a;
-    }
-    20% {
-        background-color: #61dafb;
-    }
-    100% {
-        background-color: transparent;
-    }
+    0% { background-color: transparent; }
+    30% { background-color: rgba(97, 218, 251, 0.4); }
+    100% { background-color: rgba(97, 218, 251, 0.1); }
 }
 .name.name_copied::after {
-    content:           'Copied!';
-    position:          absolute;
-    right:             10px;
-    color:             #61dafb;
-    font-size:         12px;
-    opacity:           0;
-    animation:         fade-in-out 1s ease;
+    content: "Copied!";
+    position: absolute;
+    right: 10px;
+    top: 50%;
+    transform: translateY(-50%);
+    color: white;
+    background: #61dafb;
+    padding: 2px 8px;
+    border-radius: 4px;
+    font-size: 12px;
+    animation: fade-in-out 0.8s ease;
+    z-index: 10;
+    pointer-events: none;
 }
 @keyframes fade-in-out {
-    0% {
-        opacity:          0;
-    }
-    20% {
-        opacity:          1;
-    }
-    80% {
-        opacity:          1;
-    }
-    100% {
-        opacity:          0;
-    }
+    0% { opacity: 0; transform: translateY(-50%) translateX(10px); }
+    20% { opacity: 1; transform: translateY(-50%) translateX(0); }
+    80% { opacity: 1; transform: translateY(-50%) translateX(0); }
+    100% { opacity: 0; transform: translateY(-50%) translateX(-10px); }
 }
 .term_container {
     display:           flex;
     flex-wrap:         nowrap;
+    text-indent:       0;
+    height: 30px;
+    min-height: 30px;
+    max-height: 30px;
+    display: flex;
+    align-items: center;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
 }
 .term {
     margin-right:      0;
+    pointer-events:     none;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
 }
 .term_white {
     color:             #ffffff;
@@ -216,6 +264,7 @@ body {
 }
 .separator {
     margin-right:      0;
+    pointer-events:     none;
 }
 .separator_white {
     color:             #ffffff;
@@ -248,10 +297,15 @@ body {
     color:             #444444;
 }
 .filter_container {
-    display:           flex;
-    flex-direction:   column;
-    gap:              15px;
-    margin-bottom:    20px;
+    width: 100%;
+    padding: 15px;
+    background-color: #2d2d2d;
+    border-radius: 8px;
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+    margin-bottom: 20px;
+    box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
 }
 .filter_group {
     display:          flex;
@@ -273,9 +327,9 @@ body {
 }
 .filter_buttons {
     display:          flex;
-    gap:              10px;
-    justify-content:  center;
     flex-wrap:        wrap;
+    gap:              8px;
+    margin-top:       10px;
 }
 .filter_actions {
     display:          flex;
@@ -353,29 +407,32 @@ body {
     border-color:     #777;
 }
 .filter {
-    padding:          6px 12px;
-    border-radius:    4px;
-    border:           1px solid transparent;
-    font-size:        14px;
-    cursor:           pointer;
-    transition:       all 0.2s ease;
-    background-color: #3a3a3a;
-    color:            #cccccc;
-    position:         relative;
+    padding: 6px 12px;
+    border-radius: 4px;
+    border: 1px solid #444;
+    font-size: 14px;
+    cursor: pointer;
+    transition: all 0.2s ease;
+    background-color: #333;
+    color: #ccc;
+    position: relative;
+    transform: translateZ(0);
+    backface-visibility: hidden;
+}
+.filter:hover {
+    box-shadow: 0 0 5px rgba(255, 255, 255, 0.2);
+    transform: none;
 }
 .filter::after {
-    content:          "";
-    position:         absolute;
-    bottom:           -2px;
-    left:             50%;
-    width:            0;
-    height:           2px;
-    background:       #555;
-    transform:        translateX(-50%);
-    transition:       width 0.2s ease;
-}
-.filter:hover::after {
-    width:            80%;
+    content: "";
+    position: absolute;
+    bottom: -2px;
+    left: 50%;
+    width: 0;
+    height: 2px;
+    background: #555;
+    transform: translateX(-50%);
+    transition: width 0.2s ease;
 }
 .filter_active::after {
     background:       currentColor;
@@ -500,96 +557,203 @@ body {
     border:           1px solid rgba(204, 204, 204, 0.8);
 }
 
-/* Root term grouping styles */
+/* Root group styling */
 .root_term_group {
-    margin-bottom:    4px;
-    position:         relative;
-}
-
-/* Style for hiding the root header when opened but keeping the caret */
-.root_header_hidden {
-    display: none;
-}
-
-/* Keep the caret visible on the first item of opened content */
-.root_term_content.expanded > .name:first-child {
     position: relative;
+    margin-bottom: 0;
+    padding-left: 0;
 }
 
-.root_term_content.expanded > .name:first-child::before {
-    content: "▼";
-    position: absolute;
-    left: -30px;
-    color: #aaa;
-    font-size: 20px;
-    text-align: center;
-    line-height: 24px;
-    width: 24px;
-    height: 24px;
-    top: 50%;
-    transform: translateY(-50%);
-    cursor: pointer;
-    z-index: 10;
-}
-
-/* Style the caret on hover */
-.root_term_content.expanded > .name:first-child:hover::before {
-    color: #fff;
-}
-
+/* Root header styling */
 .root_term_header {
-    align-items:      center;
-}
-
-.root_term_caret {
-    display:          inline-block;
-    width:            24px;
-    min-width:        24px;
-    height:           24px;
-    position:         absolute;
-    left:             -30px;
-    top:              50%;
-    transform:        translateY(-50%);
-    transition:       color 0.2s;
-    color:            #555;
-    font-size:        20px;
-    text-align:       center;
-    line-height:      24px;
-}
-
-.root_term_caret.expanded {
-    color:            #aaa;
-}
-
-.root_term_text {
+    display: flex;
+    align-items: center;
+    height: 30px;
+    min-height: 30px;
+    max-height: 30px;
+    padding: 0 8px 0 30px !important;
+    margin: 0;
     font-family: monospace;
     font-size: 14px;
     cursor: pointer;
     position: relative;
+    user-select: none;
+    background-color: transparent;
+    transform: translateZ(0);
+    backface-visibility: hidden;
+    border-radius: 4px;
+    box-sizing: border-box;
+    outline: 1px solid transparent;
+    transition: background-color 0.2s ease, outline 0.2s ease;
 }
 
-.root_term_text.name_copied {
-    animation: copy-flash 1s ease;
+.root_term_header:hover {
+    background-color: rgba(97, 218, 251, 0.05);
+    outline: 1px solid rgba(97, 218, 251, 0.2);
 }
 
-.root_term_text.name_copied::after {
-    content: 'Copied!';
+/* Root header caret styling */
+.root_term_caret,
+.root_term_header .root_term_caret {
     position: absolute;
-    right: -60px;
-    top: 0;
-    color: #61dafb;
-    font-size: 12px;
-    opacity: 0;
-    animation: fade-in-out 1s ease;
+    left: 5px;
+    top: 50%;
+    transform: translateY(-50%);
+    color: #888;
+    font-size: 16px;
+    z-index: 10;
+    pointer-events: none;
+    width: 20px;
+    height: 20px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
 }
 
+.root_term_header:hover .root_term_caret {
+    color: #fff;
+}
+
+/* Hidden state for root header when expanded */
+.root_header_hidden {
+    display: none !important;
+    visibility: hidden;
+    position: absolute;
+    opacity: 0;
+    pointer-events: none;
+    height: 0;
+    overflow: hidden;
+}
+
+/* Root content styling */
 .root_term_content {
-    margin-left:      0;
-    display:          none;
+    margin: 0;
+    padding: 0;
+    display: none;
 }
 
 .root_term_content.expanded {
     display: block;
+    margin-top: 0;
+}
+
+/* Ensure the first item in expanded content replaces the header */
+.root_term_content.expanded > .name:first-child {
+    padding: 0 8px 0 30px !important;
+    position: relative;
+    height: 30px;
+    min-height: 30px;
+    max-height: 30px;
+    display: flex;
+    align-items: center;
+    margin-top: 0;
+}
+
+/* Remove old caret code and use the button instead */
+.root_term_content.expanded > .name:first-child::before {
+    content: none;
+}
+
+/* Ensure root item button is visible */
+.root_item .name_root_open {
+    display: flex;
+}
+
+/* Make the name elements' click areas work properly */
+.name {
+    cursor: pointer;
+    position: relative;
+    z-index: 1;
+}
+
+/* Improve the name_root_open button styling */
+.name_root_open {
+    position: absolute;
+    left: 5px;
+    top: 50%;
+    transform: translateY(-50%);
+    width: 22px;
+    height: 22px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 14px;
+    font-weight: bold;
+    color: #fff;
+    cursor: pointer;
+    z-index: 150;
+    background-color: rgba(50, 50, 50, 0.9);
+    border: none;
+    border-radius: 3px;
+    transition: background-color 0.2s ease, color 0.2s ease;
+    text-align: center;
+    line-height: 1;
+    box-shadow: none;
+    margin: 0;
+    padding: 0;
+    pointer-events: auto !important;
+    isolation: isolate;
+    outline: none;
+}
+
+.name_root_open:hover {
+    color: #61dafb;
+    background-color: rgba(60, 60, 60, 0.95);
+}
+
+.name_root_open:focus {
+    outline: none;
+    box-shadow: none;
+}
+
+/* Ensure the name_root_open buttons in the root header are visible */
+.root_term_header .name_root_open {
+    left: 5px;
+    opacity: 1;
+    visibility: visible;
+}
+
+/* Make sure the name element doesn't block the button */
+.name, .root_term_header {
+    position: relative;
+}
+
+/* Create a pseudo-element to intercept clicks for the toggle button area */
+.name::before, .root_term_header::before {
+    content: "";
+    position: absolute;
+    left: 0;
+    top: 0;
+    width: 30px; /* Width of the toggle button area */
+    height: 100%;
+    pointer-events: none; /* Allow clicks to pass through to the actual button */
+    z-index: 140;
+}
+
+/* Fix the lookup close button to ensure it doesn't interfere */
+#standalone_close_button {
+    z-index: 200;
+    position: absolute;
+    top: 5px;
+    right: 5px;
+    pointer-events: auto !important;
+}
+
+/* Ensure the lookup container and its children don't interfere with root buttons */
+.lookup_container * {
+    pointer-events: auto;
+}
+
+/* Root toggle all button styling */
+#root_toggle_all {
+    padding: 5px 10px;
+    font-size: 16px;
+    cursor: pointer;
+    background-color: #3a3a3a;
+    border: 1px solid #444;
+    border-radius: 4px;
+    color: #e0e0e0;
+    margin-right: 10px;
 }
 
 /* Custom styles for different term types */
@@ -619,45 +783,6 @@ body {
 
 .root_term_property .root_term_text {
     color: #f39c12;
-}
-
-.root_term_header:hover {
-    background-color: #3a3a3a;
-}
-
-#filter_property:hover {
-    background-color: rgba(243, 156, 18, 0.1);
-    border:           1px solid rgba(243, 156, 18, 0.7);
-}
-
-.root_term_header:hover .root_term_caret {
-    color:            #fff;
-}
-
-/* Add styling for the open/close buttons */
-#root_toggle_all {
-    margin-right:     10px;
-    font-size:        16px;
-}
-
-/* Special styling for the first item in opened content (root item) */
-.root_item {
-    padding-bottom: 4px !important;
-    margin-bottom: 4px !important;
-}
-
-/* Make the caret more visible for root items */
-.root_term_content.expanded > .root_item::before {
-    color: #ddd;
-}
-
-#filter_file:hover {
-    background-color: rgba(46, 204, 113, 0.1);
-    border:           1px solid rgba(46, 204, 113, 0.7);
-}
-
-.root_term_file .root_term_text {
-    color: #2ecc71;
 }
 
 /* Additional styling for file paths */
@@ -709,4 +834,563 @@ body {
 
 .root_term_store .root_term_text {
     color: #9b59b6;
+}
+
+/* Main content layout for permanent two-column display */
+.app_content {
+    display: flex;
+    flex-direction: column;
+    width: 100%;
+    height: calc(100vh - 120px);
+    margin-top: 20px;
+    overflow: hidden;
+}
+
+/* Create container for the two-column layout */
+.main_container {
+    display: flex;
+    flex-direction: row;
+    width: 100%;
+    height: 100%;
+    gap: 20px;
+    flex: 1;
+}
+
+/* Left column for filters and index */
+.left_column {
+    width: 50%;
+    display: flex;
+    flex-direction: column;
+    height: 100%;
+    background-color: #2d2d2d;
+    border-radius: 8px;
+    box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+}
+
+/* Filter container inside left column */
+.filter_container {
+    flex-shrink: 0;
+    padding: 15px;
+    background-color: #2d2d2d;
+    border-bottom: 1px solid #444;
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+    width: 100%;
+}
+
+/* Index container inside left column */
+.index_container {
+    flex: 1;
+    overflow-y: auto;
+    padding: 10px 20px;
+    width: 100%;
+}
+
+/* Right column for lookup */
+.right_column {
+    width: 50%;
+    position: relative;
+    height: 100%;
+    background-color: #2d2d2d;
+    border-radius: 8px;
+    box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+}
+
+/* Placeholder panel styling */
+.placeholder_panel {
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    align-items: center;
+    color: #888;
+    z-index: 1;
+    background-color: #2d2d2d;
+    transition: all 0.3s ease;
+}
+
+.placeholder_panel.hidden {
+    display: none;
+}
+
+.placeholder_icon {
+    font-size: 48px;
+    margin-bottom: 20px;
+    color: #61dafb;
+    animation: pulse 2s infinite;
+}
+
+.placeholder_text {
+    font-size: 18px;
+    text-align: center;
+    max-width: 80%;
+    color: #aaa;
+}
+
+@keyframes pulse {
+    0% { opacity: 0.6; transform: scale(1); }
+    50% { opacity: 1; transform: scale(1.1); }
+    100% { opacity: 0.6; transform: scale(1); }
+}
+
+/* Lookup container styling */
+.lookup_container {
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    display: none;
+    flex-direction: column;
+    z-index: 2;
+    scrollbar-width: thin;
+    scrollbar-color: #444 transparent;
+}
+
+.lookup_container.visible {
+    display: flex;
+}
+
+/* Lookup header styling */
+.lookup_header {
+    display: flex;
+    justify-content: flex-start;
+    align-items: center;
+    padding: 15px 60px 15px 15px;
+    background-color: #333;
+    border-bottom: 1px solid #444;
+    position: relative;
+    z-index: 100;
+    min-height: 60px;
+}
+
+.lookup_title {
+    margin: 0;
+    font-size: 16px;
+    font-weight: bold;
+    color: #61dafb;
+}
+
+#lookup_selected_name {
+    font-weight: normal;
+    font-style: italic;
+    color: #e0e0e0;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+    max-width: calc(100% - 60px);
+    pointer-events: none;
+}
+
+.lookup_close_button {
+    position: absolute;
+    top: 5px;
+    right: 5px;
+    background: #444;
+    border: 2px solid #666;
+    font-size: 32px;
+    cursor: pointer;
+    width: 50px;
+    height: 50px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    border-radius: 50%;
+    color: #e0e0e0;
+    z-index: 9999;
+    background-color: rgba(75, 75, 75, 0.9);
+    transition: all 0.2s ease;
+    padding: 0;
+    line-height: 1;
+    font-weight: bold;
+    pointer-events: auto !important;
+    text-align: center;
+    box-shadow: 0 0 10px rgba(0, 0, 0, 0.5);
+}
+
+.lookup_close_button:hover {
+    background-color: #e74c3c;
+    transform: scale(1.1);
+    box-shadow: 0 0 15px rgba(231, 76, 60, 0.9);
+}
+
+/* Style the lookup result textarea with custom scrollbar */
+.lookup_result {
+    flex: 1;
+    width: 100%;
+    height: calc(100% - 60px);
+    padding: 15px;
+    font-family: monospace;
+    font-size: 14px;
+    line-height: 1.5;
+    color: #e0e0e0;
+    background-color: #2d2d2d;
+    border: none;
+    border-top: 1px solid #444;
+    resize: none;
+    outline: none;
+    overflow-y: auto;
+    white-space: pre-wrap;
+    box-sizing: border-box;
+    margin: 0;
+    overflow-x: hidden;
+    tab-size: 4;
+    scrollbar-width: thin;
+    scrollbar-color: #444 transparent;
+    pointer-events: auto;
+    z-index: 1;
+}
+
+.lookup_result:focus {
+    outline: none;
+    border-color: #444;
+}
+
+/* Add selection highlight color */
+.lookup_result::selection {
+    background-color: rgba(97, 218, 251, 0.3);
+    color: #fff;
+}
+
+/* Fix search input dark theme */
+#name_search_input {
+    width: 200px;
+    padding: 5px 30px 5px 10px;
+    border: 1px solid #444;
+    border-radius: 4px;
+    font-size: 14px;
+    background-color: #3a3a3a;
+    color: #e0e0e0;
+}
+
+/* Root toggle button - dark theme */
+.root_toggle_button {
+    padding: 5px 10px;
+    font-size: 14px;
+    cursor: pointer;
+    background-color: #3a3a3a;
+    border: 1px solid #444;
+    border-radius: 4px;
+    color: #e0e0e0;
+}
+
+/* Fix filter top row styles */
+.filter_top_row {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    margin-bottom: 10px;
+}
+
+.filter_group_title {
+    margin: 0;
+    font-size: 14px;
+    color: #61dafb;
+    font-weight: bold;
+    text-shadow: 0 0 5px rgba(97, 218, 251, 0.5);
+}
+
+.search_container {
+    display: flex;
+    align-items: center;
+    position: relative;
+    margin-right: 10px;
+}
+
+#name_search_input {
+    width: 200px;
+    padding: 8px 30px 8px 10px;
+    border: 1px solid #444;
+    border-radius: 4px;
+    font-size: 14px;
+    background-color: #3a3a3a;
+    color: #e0e0e0;
+}
+
+#name_search_input:focus {
+    outline: none;
+    box-shadow: 0 0 0 2px rgba(97, 218, 251, 0.5);
+    border-color: #61dafb;
+}
+
+.name_search_clear {
+    position: absolute;
+    right: 8px;
+    background: none;
+    border: none;
+    font-size: 18px;
+    cursor: pointer;
+    color: #777;
+    display: none;
+}
+
+.name_search_clear.visible {
+    display: block;
+}
+
+.name_search_clear:hover {
+    color: #e74c3c;
+}
+
+/* Fix filter buttons styling */
+.filter_buttons {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 10px;
+    margin-top: 5px;
+}
+
+.filter {
+    padding: 6px 12px;
+    border-radius: 4px;
+    border: 1px solid #444;
+    font-size: 14px;
+    cursor: pointer;
+    transition: all 0.2s ease;
+    background-color: #333;
+    color: #ccc;
+    position: relative;
+    transform: translateZ(0);
+    backface-visibility: hidden;
+}
+
+.filter:hover {
+    box-shadow: 0 0 5px rgba(255, 255, 255, 0.2);
+    transform: none;
+}
+
+.filter::after {
+    content: "";
+    position: absolute;
+    bottom: -2px;
+    left: 50%;
+    width: 0;
+    height: 2px;
+    background: #555;
+    transform: translateX(-50%);
+    transition: width 0.2s ease;
+}
+
+.filter_active::after {
+    background:       currentColor;
+    width:            100%;
+}
+
+#filter_function {
+    color:            #f7dd72;
+}
+#filter_variable {
+    color:            #ffffff;
+}
+#filter_class {
+    color:            #e28eff;
+}
+#filter_parameter {
+    color:            #61dafb;
+}
+#filter_constant {
+    color:            #52be80;
+}
+#filter_event {
+    color:            #e74c3c;
+}
+#filter_property {
+    color:            #f39c12;
+}
+#filter_file {
+    color:            #2ecc71;
+}
+#filter_reset_all {
+    color:            #cccccc;
+    background-color: rgba(102, 102, 102, 0.2);
+    border:           1px solid rgba(204, 204, 204, 0.5);
+    margin-left:      auto;
+}
+#filter_function.filter_active {
+    background-color: rgba(247, 221, 114, 0.2);
+    border:           1px solid #f7dd72;
+}
+#filter_variable.filter_active {
+    background-color: rgba(255, 255, 255, 0.2);
+    border:           1px solid #ffffff;
+}
+#filter_class.filter_active {
+    background-color: rgba(226, 142, 255, 0.2);
+    border:           1px solid #e28eff;
+}
+#filter_parameter.filter_active {
+    background-color: rgba(97, 218, 251, 0.2);
+    border:           1px solid #61dafb;
+}
+#filter_constant.filter_active {
+    background-color: rgba(82, 190, 128, 0.2);
+    border:           1px solid #52be80;
+}
+#filter_event.filter_active {
+    background-color: rgba(231, 76, 60, 0.2);
+    border:           1px solid #e74c3c;
+}
+#filter_property.filter_active {
+    background-color: rgba(243, 156, 18, 0.2);
+    border:           1px solid #f39c12;
+}
+#filter_file.filter_active {
+    background-color: rgba(46, 204, 113, 0.2);
+    border:           1px solid #2ecc71;
+}
+.name_hidden {
+    display:          none;
+}
+.filters_row {
+    display:          flex;
+    gap:              10px;
+    justify-content:  flex-start;
+    flex-wrap:        nowrap;
+    align-items:      center;
+    overflow-x:       auto;
+    padding-bottom:   10px;
+}
+
+@media (max-width: 1000px) {
+    .app_container {
+        max-width:    90%;
+    }
+    
+    .filters_row {
+        flex-wrap:    wrap;
+    }
+}
+
+/* Root toggle button - dark theme */
+.root_toggle_button {
+    padding: 6px 10px;
+    font-size: 16px;
+    cursor: pointer;
+    background-color: #3a3a3a;
+    border: 1px solid #444;
+    border-radius: 4px;
+    color: #e0e0e0;
+    margin-right: 10px;
+}
+
+.root_toggle_button:hover {
+    background-color: #444;
+    box-shadow: 0 0 5px rgba(97, 218, 251, 0.5);
+}
+
+/* Custom scrollbar styling */
+::-webkit-scrollbar {
+    width: 10px;
+    height: 10px;
+    background-color: transparent;
+}
+
+::-webkit-scrollbar-track {
+    background-color: transparent;
+    border-radius: 5px;
+}
+
+::-webkit-scrollbar-thumb {
+    background-color: #444;
+    border-radius: 5px;
+    border: 2px solid #2d2d2d;
+}
+
+::-webkit-scrollbar-thumb:hover {
+    background-color: #555;
+}
+
+/* Make sure no other elements can accidentally catch click events meant for the button */
+.lookup_container * {
+    pointer-events: auto;
+}
+
+/* Reset pointer events for the close button to ensure it's clickable */
+.lookup_close_button * {
+    pointer-events: none;
+}
+
+/* Ensure all name elements have the same height */
+.name, 
+.name:hover, 
+.name:active, 
+.name.name_copied,
+.root_term_header,
+.root_term_header:hover {
+    min-height: 30px; /* Exactly the same height for all states */
+    height: 30px; /* Fixed height */
+    display: flex;
+    align-items: center;
+    box-sizing: border-box;
+    padding: 0 8px 0 30px !important; /* Consistent padding */
+    margin: 0;
+    border-radius: 4px;
+    pointer-events: auto;
+}
+
+/* Fix name hover styles for consistency */
+.name:hover {
+    background-color: rgba(97, 218, 251, 0.1);
+    outline: 1px solid rgba(97, 218, 251, 0.3);
+    /* No changes to dimensions */
+    transform: none;
+}
+
+/* Fix term container alignment */
+.term_container {
+    display: flex;
+    align-items: center;
+    height: 100%;
+    position: relative;
+    overflow: hidden; /* Prevent content from changing dimensions */
+}
+
+/* Update padding for names to accommodate the button */
+.name {
+    text-indent: 0;
+    padding: 5px 8px 5px 30px !important;
+    position: relative;
+    cursor: pointer;
+    margin: 0;
+    border-radius: 4px;
+    transition: background-color 0.2s ease;
+    transform: translateZ(0);
+    backface-visibility: hidden;
+    will-change: background-color;
+    border-left: 2px solid transparent;
+}
+
+/* Update root caret styling */
+.root_term_caret,
+.root_term_header .root_term_caret {
+    position: absolute;
+    left: 5px;
+    top: 50%;
+    transform: translateY(-50%);
+    color: #888;
+    font-size: 16px;
+    z-index: 10;
+    pointer-events: none;
+    width: 20px;
+    height: 20px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+/* Ensure root content items have consistent height */
+.root_term_content .name {
+    height: 30px;
+    min-height: 30px;
+    max-height: 30px;
+    display: flex;
+    align-items: center;
+    padding: 0 8px 0 30px !important;
+    margin: 0;
+    box-sizing: border-box;
 } 

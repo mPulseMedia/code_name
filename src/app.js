@@ -1,667 +1,58 @@
-window.name_list_func  = {};
-window.name_list_var   = {};
-window.name_list_class = [];
-window.name_list_param = [];
-window.name_list_const = [];
-window.name_list_event = [];
-window.name_list_propt = [];
-window.name_list_file  = [];
-window.name_list_window = [];
-
-window.filter_on_list  = {
-    func_on    : true,
-    var_on     : true,
-    class_on   : true,
-    param_on   : true,
-    const_on   : true,
-    event_on   : true,
-    propt_on   : true,
-    file_on    : true,
-    window_on  : true,
-    search_query : ''
+// Add logging control variables
+const LOG_GROUPS = {
+    APP: {
+        INIT: true,           // App initialization
+        DOM: false,           // DOM setup and rendering
+        EVENT: false,         // Event handling
+        STATE: true           // State management
+    },
+    NAME: {
+        RENDER: false,        // Name element rendering
+        CLICK: true,         // Name click handling
+        FILTER: true,        // Name filtering
+        TYPE: false,          // Name type determination
+        TERM: false           // Term handling
+    },
+    ROOT: {
+        GROUP: false,         // Root group operations
+        TOGGLE: false,        // Root toggle operations
+        HEADER: false,        // Root header operations
+        CONTENT: false        // Root content operations
+    },
+    LOOKUP: {
+        INIT: false,          // Lookup initialization
+        SHOW: true,          // Lookup display
+        HIDE: true,          // Lookup hiding
+        SNIPPET: false,       // Snippet operations
+        SEARCH: true         // Snippet searching
+    },
+    SEARCH: {
+        APPLY: true,         // Search application
+        MATCH: false,         // Search matching
+        FILTER: true         // Search filtering
+    },
+    ERROR: true             // Error logging (always on)
 };
 
-window.root_open_state            = {};
-window.search_root_previous_state = {};
-window.search_root_match         = {};
-window.search_timeout            = null;
-window.search_delay_ms           = 300;
-
-// App functions
-const app_event_listener_setup = () => {
-    window.name_list_func['app_event_listener_setup'] = app_event_listener_setup;
-    // Type filter buttons
-    const filter_function_element  = document.getElementById('filter_function');
-    const filter_variable_element  = document.getElementById('filter_variable');
-    const filter_class_element     = document.getElementById('filter_class');
-    const filter_parameter_element = document.getElementById('filter_parameter');
-    const filter_constant_element  = document.getElementById('filter_constant');
-    const filter_event_element     = document.getElementById('filter_event');
-    const filter_property_element  = document.getElementById('filter_property');
-    const filter_file_element      = document.getElementById('filter_file');
-    const filter_window_element    = document.getElementById('filter_window');
-    
-    // Reset button
-    const filter_reset_all_element = document.getElementById('filter_reset_all');
-    
-    // Search elements
-    const search_input_element = document.getElementById('name_search_input');
-    const search_clear_element = document.getElementById('name_search_clear');
-    
-    // Set up type filter event listeners
-    filter_type_function_event_add(filter_function_element);
-    filter_type_variable_event_add(filter_variable_element);
-    filter_type_class_event_add(filter_class_element);
-    filter_type_event_add(filter_parameter_element, 'parameter');
-    filter_type_event_add(filter_constant_element, 'constant');
-    filter_type_event_add(filter_event_element, 'event');
-    filter_type_event_add(filter_property_element, 'property');
-    filter_type_event_add(filter_file_element, 'file');
-    filter_type_event_add(filter_window_element, 'window');
-    
-    // Set up reset all filters button
-    if (filter_reset_all_element) {
-        filter_reset_all_element.addEventListener('click', filter_all_reset);
+// Helper function for logging
+const log = (group, ...args) => {
+    // Handle nested groups (e.g., INIT.DOM)
+    if (group.includes('.')) {
+        const [parent, child] = group.split('.');
+        if (LOG_GROUPS[parent] && LOG_GROUPS[parent][child]) {
+            console.log(`[${group}]`, ...args);
+        }
+    } else if (LOG_GROUPS[group]) {
+        console.log(`[${group}]`, ...args);
     }
-    
-    // Set up root toggle all button
-    const root_toggle_all_element = document.getElementById('root_toggle_all');
-    
-    if (root_toggle_all_element) {
-        // Track current state - start with "will open all" (▶)
-        let all_opened = false;
-        
-        root_toggle_all_element.addEventListener('click', () => {
-            all_opened = !all_opened;
-            
-            if (all_opened) {
-                // Change to "will collapse all" state
-                dom_element_text_set(root_toggle_all_element, '▼');
-                root_toggle_all_element.title = 'Collapse all roots';
-                root_open_all();
-            } else {
-                // Change to "will open all" state
-                dom_element_text_set(root_toggle_all_element, '▶');
-                root_toggle_all_element.title = 'Open all roots';
-                root_close_all();
-            }
-        });
-    }
-    
-    // Set up search input event listeners
-    if (search_input_element) {
-        search_input_element.addEventListener('input', () => {
-            // Show/hide the clear button based on input
-            if (search_input_element.value.length > 0) {
-                search_clear_element.classList.add('visible');
-            } else {
-                search_clear_element.classList.remove('visible');
-            }
-            
-            // Clear any existing timer
-            if (window.search_timeout) {
-                clearTimeout(window.search_timeout);
-            }
-            
-            // Set a new timer to apply the search after typing stops
-            window.search_timeout = setTimeout(() => {
-                search_apply(search_input_element.value);
-            }, window.search_delay_ms);
-        });
-        
-        // On Enter key, apply the search immediately
-        search_input_element.addEventListener('keydown', (event) => {
-            if (event.key === 'Enter') {
-                event.preventDefault();
-                // Clear any pending debounce timer
-                if (window.search_timeout) {
-                    clearTimeout(window.search_timeout);
-                }
-                search_apply(search_input_element.value);
-            }
-        });
-    }
-    
-    // Set up search clear button
-    if (search_clear_element) {
-        search_clear_element.addEventListener('click', () => {
-            search_input_element.value = '';
-            search_clear_element.classList.remove('visible');
-            
-            // Clear any pending debounce timer
-            if (window.search_timeout) {
-                clearTimeout(window.search_timeout);
-            }
-            
-            // Apply the empty search immediately
-            search_apply('');
-        });
-    }
-};
-const app_init = () => {
-    window.name_list_func['app_init'] = app_init;
-    
-    app_event_listener_setup();
-    name_list_const_set();
-    
-    // Make sure all filters are active and index is populated on initial load
-    filter_all_reset();
-    
-    setTimeout(() => {
-        filter_count_visible_check();
-    }, 100);
 };
 
-// Array functions
-const array_sort_alphabetically = (array_input) => {
-    window.name_list_func['array_sort_alphabetically'] = array_sort_alphabetically;
-    return [...array_input].sort((a, b) => {
-        const a_lower = String(a).toLowerCase();
-        const b_lower = String(b).toLowerCase();
-        return a_lower.localeCompare(b_lower);
-    });
-};
+// Update initial loading logs
+log('APP.INIT', 'app.js starting to load');
+log('APP.INIT', 'app.js finished loading');
 
-// DOM functions
-const dom_element_append = (parent_element, child_element) => {
-    window.name_list_func['dom_element_append'] = dom_element_append;
-    parent_element.appendChild(child_element);
-    return parent_element;
-};
-const dom_element_class_add = (target_element, class_name) => {
-    window.name_list_func['dom_element_class_add'] = dom_element_class_add;
-    target_element.classList.add(class_name);
-    return target_element;
-};
-const dom_element_create = (element_tag) => {
-    window.name_list_func['dom_element_create'] = dom_element_create;
-    return document.createElement(element_tag);
-};
-const dom_element_text_set = (target_element, text_content) => {
-    window.name_list_func['dom_element_text_set'] = dom_element_text_set;
-    target_element.textContent = text_content;
-    return target_element;
-};
-
-// Filter functions
-const filter_all_reset = () => {
-    window.name_list_func['filter_all_reset'] = filter_all_reset;
-    
-    // Map of filter types to their button IDs
-    const filter_type_map = {
-        'func_on': 'function',
-        'var_on': 'variable',
-        'class_on': 'class',
-        'param_on': 'parameter',
-        'const_on': 'constant',
-        'event_on': 'event',
-        'propt_on': 'property',
-        'file_on': 'file',
-        'window_on': 'window'
-    };
-    
-    // Turn on all filters
-    for (const filter_type in window.filter_on_list) {
-        // Skip search_query, handle it separately
-        if (filter_type === 'search_query') continue;
-        
-        window.filter_on_list[filter_type] = true;
-        
-        // Update button UI
-        const filter_id = filter_type_map[filter_type];
-        if (filter_id) {
-            const button_element = document.getElementById(`filter_${filter_id}`);
-            if (button_element) {
-                button_element.classList.add('filter_active');
-            }
-        }
-    }
-    
-    // Clear search query
-    window.filter_on_list.search_query = '';
-    const search_input_element = document.getElementById('name_search_input');
-    const search_clear_element = document.getElementById('name_search_clear');
-    
-    if (search_input_element) {
-        search_input_element.value = '';
-    }
-    
-    if (search_clear_element) {
-        search_clear_element.classList.remove('visible');
-    }
-    
-    // Apply the filter
-    filter_name_apply();
-    
-    // After filter is applied, close all opened root items
-    const opened_carets = document.querySelectorAll('.root_term_caret.expanded');
-    const opened_contents = document.querySelectorAll('.root_term_content.expanded');
-    
-    // Remove expanded class from carets and set text to closed state
-    opened_carets.forEach(caret => {
-        root_toggle(caret);
-    });
-    
-    // Remove expanded class from content elements
-    opened_contents.forEach(content => {
-        content.classList.remove('expanded');
-    });
-    
-    // Clear all saved open states
-    window.root_open_state = {};
-    // Also clear search history when resetting filters
-    window.search_root_match = {};
-};
-const filter_count_visible_check = () => {
-    window.name_list_func['filter_count_visible_check'] = filter_count_visible_check;
-    
-    const name_visible_count = document.querySelectorAll('.name:not(.name_hidden)').length;
-    const name_total_count   = document.querySelectorAll('.name').length;
-    
-    const visible_issue_is = name_visible_count === 0 && name_total_count > 0;
-    
-    if (visible_issue_is) {
-        filter_name_apply();
-    }
-};
-const filter_exclusive_set = (active_filter_type) => {
-    window.name_list_func['filter_exclusive_set'] = filter_exclusive_set;
-    
-    // Map of filter types to their button IDs
-    const filter_type_map = {
-        'func_on': 'function',
-        'var_on': 'variable',
-        'class_on': 'class',
-        'param_on': 'parameter',
-        'const_on': 'constant',
-        'event_on': 'event',
-        'propt_on': 'property',
-        'file_on': 'file',
-        'window_on': 'window'
-    };
-    
-    // Turn off all filters
-    for (const filter_type in window.filter_on_list) {
-        // Skip search_query, don't change it
-        if (filter_type === 'search_query') continue;
-        
-        window.filter_on_list[filter_type] = false;
-        
-        // Update button UI
-        const filter_id = filter_type_map[filter_type];
-        if (filter_id) {
-            const button_element = document.getElementById(`filter_${filter_id}`);
-            if (button_element) {
-                button_element.classList.remove('filter_active');
-            }
-        }
-    }
-    
-    // Turn on only the selected filter
-    window.filter_on_list[active_filter_type] = true;
-    
-    // Update button UI for the selected filter
-    const active_filter_id = filter_type_map[active_filter_type];
-    if (active_filter_id) {
-        const active_button_element = document.getElementById(`filter_${active_filter_id}`);
-        if (active_button_element) {
-            active_button_element.classList.add('filter_active');
-        }
-    }
-    
-    // Apply the filter
-    filter_name_apply();
-};
-const filter_name_apply = () => {
-    window.name_list_func['filter_name_apply'] = filter_name_apply;
-    
-    const index_element = document.getElementById('index');
-    if (!index_element) {
-        return;
-    }
-    
-    index_element.innerHTML = '';
-    
-    const name_list = name_list_order_get();
-    
-    let name_count = {
-        func_on    : 0,
-        var_on     : 0,
-        class_on   : 0,
-        param_on   : 0,
-        const_on   : 0,
-        event_on   : 0,
-        propt_on   : 0,
-        file_on    : 0,
-        window_on  : 0,
-        count_total: 0
-    };
-    
-    // First filter the name list based on the search query
-    const filtered_name_list = name_list.filter(name_string => {
-        return name_filter_visible_is(name_string);
-    });
-    
-    // Group names by root term
-    const root_group_map = {};
-    
-    filtered_name_list.forEach(name_string => {
-        const root_name = root_extract(name_string);
-        
-        if (!root_group_map[root_name]) {
-            root_group_map[root_name] = [];
-        }
-        
-        root_group_map[root_name].push(name_string);
-        
-        // Count the visible names by type
-        if (window.name_list_func[name_string]) {
-            name_count.func_on++;
-        } else if (window.name_list_class.includes(name_string)) {
-            name_count.class_on++;
-        } else if (window.name_list_param.includes(name_string)) {
-            name_count.param_on++;
-        } else if (window.name_list_const.includes(name_string)) {
-            name_count.const_on++;
-        } else if (window.name_list_event.includes(name_string)) {
-            name_count.event_on++;
-        } else if (window.name_list_propt.includes(name_string)) {
-            name_count.propt_on++;
-        } else if (window.name_list_file.includes(name_string)) {
-            name_count.file_on++;
-        } else if (window.name_list_window.includes(name_string)) {
-            name_count.window_on++;
-        } else {
-            name_count.var_on++;
-        }
-        name_count.count_total++;
-    });
-    
-    // Check if we should open all roots
-    const root_toggle_all_element = document.getElementById('root_toggle_all');
-    const all_opened = root_toggle_all_element && root_toggle_all_element.textContent === '▼';
-    
-    // Render each root term group
-    Object.keys(root_group_map).sort((a, b) => {
-        return a.toLowerCase().localeCompare(b.toLowerCase());
-    }).forEach(root_name => {
-        const names_in_group = root_group_map[root_name];
-        const group_element = root_group_create(root_name, names_in_group, index_element);
-        
-        // If all roots should be open, set this root to open
-        if (all_opened) {
-            window.root_open_state[root_name] = true;
-        }
-        
-        // Update visibility for each type of identifier
-        const name_function_element_list  = document.querySelectorAll('.name_function');
-        const name_variable_element_list  = document.querySelectorAll('.name_variable');
-        const name_class_element_list     = document.querySelectorAll('.name_class');
-        const name_parameter_element_list = document.querySelectorAll('.name_parameter');
-        const name_constant_element_list  = document.querySelectorAll('.name_constant');
-        const name_event_element_list     = document.querySelectorAll('.name_event');
-        const name_property_element_list  = document.querySelectorAll('.name_property');
-        const name_file_element_list      = document.querySelectorAll('.name_file');
-        const name_window_element_list    = document.querySelectorAll('.name_window');
-        
-        name_function_element_list.forEach(element => {
-            if (window.filter_on_list.func_on) {
-                element.classList.remove('name_hidden');
-            } else {
-                element.classList.add('name_hidden');
-            }
-        });
-        
-        name_variable_element_list.forEach(element => {
-            if (window.filter_on_list.var_on) {
-                element.classList.remove('name_hidden');
-            } else {
-                element.classList.add('name_hidden');
-            }
-        });
-        
-        name_class_element_list.forEach(element => {
-            if (window.filter_on_list.class_on) {
-                element.classList.remove('name_hidden');
-            } else {
-                element.classList.add('name_hidden');
-            }
-        });
-        
-        name_parameter_element_list.forEach(element => {
-            if (window.filter_on_list.param_on) {
-                element.classList.remove('name_hidden');
-            } else {
-                element.classList.add('name_hidden');
-            }
-        });
-        
-        name_constant_element_list.forEach(element => {
-            if (window.filter_on_list.const_on) {
-                element.classList.remove('name_hidden');
-            } else {
-                element.classList.add('name_hidden');
-            }
-        });
-        
-        name_event_element_list.forEach(element => {
-            if (window.filter_on_list.event_on) {
-                element.classList.remove('name_hidden');
-            } else {
-                element.classList.add('name_hidden');
-            }
-        });
-        
-        name_property_element_list.forEach(element => {
-            if (window.filter_on_list.propt_on) {
-                element.classList.remove('name_hidden');
-            } else {
-                element.classList.add('name_hidden');
-            }
-        });
-        
-        name_file_element_list.forEach(element => {
-            if (window.filter_on_list.file_on) {
-                element.classList.remove('name_hidden');
-            } else {
-                element.classList.add('name_hidden');
-            }
-        });
-        
-        name_window_element_list.forEach(element => {
-            if (window.filter_on_list.window_on) {
-                element.classList.remove('name_hidden');
-            } else {
-                element.classList.add('name_hidden');
-            }
-        });
-    });
-};
-const filter_state_toggle = (filter_type) => {
-    window.name_list_func['filter_state_toggle'] = filter_state_toggle;
-    
-    // Map the filter type to its corresponding property name
-    const filter_type_map = {
-        'function': 'func_on',
-        'variable': 'var_on',
-        'class': 'class_on',
-        'parameter': 'param_on',
-        'constant': 'const_on',
-        'event': 'event_on',
-        'property': 'propt_on',
-        'file': 'file_on',
-        'window': 'window_on'
-    };
-    
-    const filter_property_on = filter_type_map[filter_type];
-    if (!filter_property_on) return;
-    
-    const was_off = !window.filter_on_list[filter_property_on];
-    window.filter_on_list[filter_property_on] = !window.filter_on_list[filter_property_on];
-    
-    const button_element = document.getElementById(`filter_${filter_type}`);
-    if (button_element) {
-        if (window.filter_on_list[filter_property_on]) {
-            button_element.classList.add('filter_active');
-        } else {
-            button_element.classList.remove('filter_active');
-        }
-    }
-    
-    // If we're turning on a filter, check the root toggle all state
-    if (was_off && window.filter_on_list[filter_property_on]) {
-        const root_toggle_all_element = document.getElementById('root_toggle_all');
-        if (root_toggle_all_element) {
-            const all_opened = root_toggle_all_element.textContent === '▼';
-            if (all_opened) {
-                root_open_all();
-            } else {
-                root_close_all();
-            }
-        }
-    }
-    
-    filter_name_apply();
-};
-const filter_type_class_event_add = (button_element) => {
-    window.name_list_func['filter_type_class_event_add'] = filter_type_class_event_add;
-    
-    // Single click: toggle this filter
-    button_element.addEventListener('click', () => {
-        filter_state_toggle('class');
-    });
-    
-    // Double click: select only this filter
-    button_element.addEventListener('dblclick', (event) => {
-        event.preventDefault(); // Prevent text selection
-        filter_exclusive_set('class_on');
-    });
-};
-const filter_type_event_add = (button_element, type) => {
-    window.name_list_func['filter_type_event_add'] = filter_type_event_add;
-    
-    // Single click: toggle this filter
-    button_element.addEventListener('click', () => {
-        filter_state_toggle(type);
-    });
-    
-    // Double click: select only this filter
-    button_element.addEventListener('dblclick', (event) => {
-        event.preventDefault(); // Prevent text selection
-        // Map the type to its corresponding filter property
-        const type_to_property = {
-            'parameter': 'param_on',
-            'constant': 'const_on',
-            'event': 'event_on',
-            'property': 'propt_on',
-            'file': 'file_on',
-            'window': 'window_on'
-        };
-        const filter_property = type_to_property[type] || `${type}_on`;
-        filter_exclusive_set(filter_property);
-    });
-};
-const filter_type_function_event_add = (button_element) => {
-    window.name_list_func['filter_type_function_event_add'] = filter_type_function_event_add;
-    
-    // Single click: toggle this filter
-    button_element.addEventListener('click', () => {
-        filter_state_toggle('function');
-    });
-    
-    // Double click: select only this filter
-    button_element.addEventListener('dblclick', (event) => {
-        event.preventDefault(); // Prevent text selection
-        filter_exclusive_set('func_on');
-    });
-};
-const filter_type_variable_event_add = (button_element) => {
-    window.name_list_func['filter_type_variable_event_add'] = filter_type_variable_event_add;
-    
-    // Single click: toggle this filter
-    button_element.addEventListener('click', () => {
-        filter_state_toggle('variable');
-    });
-    
-    // Double click: select only this filter
-    button_element.addEventListener('dblclick', (event) => {
-        event.preventDefault(); // Prevent text selection
-        filter_exclusive_set('var_on');
-    });
-};
-
-// Index functions
-const index_dom_render = () => {
-    window.name_list_func['index_dom_render'] = index_dom_render;
-    filter_name_apply();
-};
-
-// Name functions
-const name_filter_visible_is = (name_string) => {
-    window.name_list_func['name_filter_visible_is'] = name_filter_visible_is;
-    
-    if (!name_string) {
-        return false;
-    }
-    
-    // Check type filters
-    const name_type_function_is  = Object.keys(window.name_list_func).includes(name_string);
-    const name_type_class_is     = window.name_list_class.includes(name_string);
-    const name_type_parameter_is = window.name_list_param.includes(name_string);
-    const name_type_constant_is  = window.name_list_const.includes(name_string);
-    const name_type_event_is     = window.name_list_event.includes(name_string);
-    const name_type_property_is  = window.name_list_propt.includes(name_string);
-    const name_type_file_is      = window.name_list_file.includes(name_string);
-    const name_type_variable_is  = Object.keys(window.name_list_var).includes(name_string);
-    const name_type_window_is     = window.name_list_window.includes(name_string);
-    
-    if (name_type_function_is && !window.filter_on_list.func_on) {
-        return false;
-    }
-    
-    if (name_type_class_is && !window.filter_on_list.class_on) {
-        return false;
-    }
-    
-    if (name_type_parameter_is && !window.filter_on_list.param_on) {
-        return false;
-    }
-    
-    if (name_type_constant_is && !window.filter_on_list.const_on) {
-        return false;
-    }
-    
-    if (name_type_event_is && !window.filter_on_list.event_on) {
-        return false;
-    }
-    
-    if (name_type_property_is && !window.filter_on_list.propt_on) {
-        return false;
-    }
-    
-    if (name_type_file_is && !window.filter_on_list.file_on) {
-        return false;
-    }
-    
-    if (name_type_variable_is && !window.filter_on_list.var_on) {
-        return false;
-    }
-    
-    if (name_type_window_is && !window.filter_on_list.window_on) {
-        return false;
-    }
-    
-    // Check search query filter (case insensitive)
-    if (window.filter_on_list.search_query && window.filter_on_list.search_query.length > 0) {
-        const search_lower = window.filter_on_list.search_query.toLowerCase();
-        return search_matches(name_string, search_lower);
-    }
-    
-    return true;
-};
-const name_list_const_set = () => {
-    window.name_list_func['name_list_const_set'] = name_list_const_set;
-    
+// Define name lists in a function to ensure they're available when needed
+const defineNameLists = () => {
     const function_names = [
         'app_event_listener_setup',
         'app_init',
@@ -691,7 +82,6 @@ const name_list_const_set = () => {
         'root_group_create',
         'root_header_create',
         'root_connect',
-        'root_type_determine',
         'root_open_all',
         'root_close_all',
         'search_apply',
@@ -700,81 +90,168 @@ const name_list_const_set = () => {
         'string_by_separator_split',
         'term_list_compare',
         'term_list_extract',
-        'term_style_get'
+        'name_type_determine',
+        'lookup_init',
+        'lookup_show',
+        'lookup_hide',
+        'lookup_snippets_load',
+        'lookup_snippets_extract',
+        'lookup_snippets_render'
     ];
-    
+
     const variable_names = [
-        'active_button_element',
-        'active_filter_id',
-        'active_filter_type',
-        'name_type_function_list',
+        'name_list_func',
         'name_list_var',
-        'array_input',
-        'button_element',
-        'child_element',
-        'class_is',
-        'class_name',
-        'count_total',
-        'name_type_class_list',
-        'element_tag',
-        'filter_function_element',
-        'filter_id',
-        'filter_property_is',
-        'filter_reset_all_element',
+        'name_list_class',
+        'name_list_param',
+        'name_list_const',
+        'name_list_event',
+        'name_list_propt',
+        'name_list_file',
+        'name_list_window',
         'filter_on_list',
-        'filter_type',
-        'filter_variable_element',
-        'function_is',
-        'name_type_parameter_list',
-        'index_element',
-        'message',
-        'name_class_element_list',
-        'name_count',
-        'name_element',
-        'name_function_element_list',
-        'name_list',
-        'name_lower',
-        'search_clear_element',
-        'search_input_element',
-        'name_string',
-        'name_string_previous',
-        'name_total_count',
-        'name_type_class_is',
-        'name_type_function_is',
-        'name_type_list_set',
-        'name_type_variable_is',
-        'name_variable_element_list',
-        'name_visible_count',
-        'parent_element',
-        'parens_element',
-        'result',
-        'root_group_map',
-        'root_name',
-        'search_query',
-        'search_lower',
-        'separator',
-        'separator_element',
-        'string',
-        'target_element',
-        'term',
-        'term_container_element',
-        'term_current_match',
-        'term_element',
-        'term_list',
-        'term_list_same_is',
-        'term_previous_list',
-        'term_previous_list_effective',
-        'term_previous_match_all',
-        'term_previous_use_is',
-        'term_same_is',
-        'term_style_class_name',
-        'text_content',
-        'type_class_name',
-        'variable_is',
-        'variable_names',
-        'visible_issue_is'
+        'root_open_state',
+        'search_root_previous_state',
+        'search_root_match',
+        'search_timeout',
+        'search_delay_ms',
+        'lookup_state'
     ];
-    
+
+    const dom_class_names = [
+        'app_container',
+        'app_title',
+        'app_content',
+        'filter_container',
+        'filter_group',
+        'filter_group_title',
+        'filter_buttons',
+        'filter',
+        'filter_active',
+        'filter_actions',
+        'filter_action',
+        'index_container',
+        'index',
+        'name',
+        'name_function',
+        'name_variable',
+        'name_class',
+        'name_parameter',
+        'name_constant',
+        'name_event',
+        'name_property',
+        'name_file',
+        'name_window',
+        'name_hidden',
+        'name_copied',
+        'term_container',
+        'term',
+        'term_white',
+        'term_gray',
+        'separator',
+        'separator_white',
+        'separator_gray',
+        'root_group',
+        'root_term_header',
+        'root_term_caret',
+        'root_term_container',
+        'root_term_text',
+        'root_term_content',
+        'root_header_hidden',
+        'root_term_content_open',
+        'root_term_header_open',
+        'root_item',
+        'lookup_container',
+        'lookup_field',
+        'lookup_close_button',
+        'lookup_window',
+        'lookup_header',
+        'lookup_title',
+        'lookup_close',
+        'lookup_content',
+        'lookup_loading',
+        'lookup_no_results',
+        'lookup_snippet',
+        'lookup_snippet_header',
+        'lookup_snippet_file',
+        'lookup_snippet_line',
+        'lookup_snippet_content',
+        'lookup_snippet_match',
+        'error'
+    ];
+
+    const parameter_names = [
+        'array_input',
+        'parent_element',
+        'child_element',
+        'target_element',
+        'class_name',
+        'element_tag',
+        'text_content',
+        'filter_type',
+        'button_element',
+        'type',
+        'name_string',
+        'term_previous_list',
+        'root_name',
+        'names_in_group',
+        'index_element',
+        'header_element',
+        'content_element',
+        'caret_element',
+        'term_container_element',
+        'text_element',
+        'term_list',
+        'term_same_is',
+        'search_query',
+        'query',
+        'event',
+        'error'
+    ];
+
+    const constant_names = [
+        'MIME_TYPES',
+        'PORT',
+        'search_delay_ms'
+    ];
+
+    const event_names = [
+        'click',
+        'dblclick',
+        'input',
+        'keydown',
+        'DOMContentLoaded',
+        'readystatechange',
+        'error',
+        'unhandledrejection'
+    ];
+
+    const property_names = [
+        'func_on',
+        'var_on',
+        'class_on',
+        'param_on',
+        'const_on',
+        'event_on',
+        'propt_on',
+        'file_on',
+        'window_on',
+        'search_query',
+        'active_name',
+        'snippets',
+        'visible'
+    ];
+
+    const file_names = [
+        'src/app.js',
+        'src/styles.css',
+        'src/styles.css.bak',
+        'index.html',
+        'index.html.backup',
+        'server.js',
+        'README.md'
+    ];
+
     const store_names = [
         'name_list_func',
         'name_list_var',
@@ -790,235 +267,456 @@ const name_list_const_set = () => {
         'search_root_previous_state',
         'search_root_match',
         'search_timeout',
-        'search_delay_ms'
+        'search_delay_ms',
+        'lookup_state'
     ];
-    
-    // Store function names in the function list object
-    function_names.forEach(name => {
-        window.name_list_func[name] = name;
-    });
-    
-    // Store variable names in the variable list object
-    variable_names.forEach(name => {
-        window.name_list_var[name] = name;
-    });
-    
-    // Store storage names in the storage list
-    store_names.forEach(name => {
-        window.name_list_window.push(name);
-    });
-    
-    const dom_class_names = [
-        'app_container',
-        'app_title',
-        'filter',
-        'filter_active',
-        'filter_buttons',
-        'filter_container',
-        'filter_group',
-        'filter_group_title',
-        'filter_prefix',
-        'index',
-        'index_container',
-        'name',
-        'name_class',
-        'name_copied',
-        'name_function',
-        'name_function_parens',
-        'name_hidden',
-        'name_variable',
-        'separator',
-        'separator_gray',
-        'separator_white',
-        'term',
-        'term_container',
-        'term_gray',
-        'term_white'
-    ];
-    
-    const parameter_names = [
-        'array_input',
-        'button_element',
-        'child_element',
-        'class_name',
-        'element_tag',
-        'filter_type',
-        'name_string',
-        'parent_element',
-        'prefix',
-        'separator',
-        'target_element',
-        'term_list',
-        'term_previous_list',
-        'term_same_is',
-        'text_content',
-        'type'
-    ];
-    
-    const constant_names = [
-        'DEFAULT_TIMEOUT_MS',
-        'MAX_NAME_LENGTH',
-        'MIN_TERM_LENGTH',
-        'DEFAULT_FILTER_STATE'
-    ];
-    
-    const event_names = [
-        'click_event',
-        'document_load_event',
-        'filter_change_event',
-        'key_press_event',
-        'mouse_over_event',
-        'name_copy_event'
-    ];
-    
-    const property_names = [
-        'element_class_list',
-        'element_style',
-        'filter_active_state',
-        'filter_color',
-        'filter_is_visible',
-        'name_display_text',
-        'term_color_value'
-    ];
-    
-    const file_names = [
-        // Root project files
-        'index.html',
-        'README.md',
-        'server.js',
-        '.gitignore',
-        '.eslintrc.json',
-        '.env',
-        
-        // Project folders
-        'src/',
-        
-        // Files in src/ folder
-        'src/app.js',
-        'src/index.html',
-        'src/styles.css',
-        'src/styles.css.bak',
-        'src/.env.local'
-    ];
-    
-    window.name_list_class = dom_class_names;
-    window.name_list_param = parameter_names;
-    window.name_list_const = constant_names;
-    window.name_list_event = event_names;
-    window.name_list_propt = property_names;
-    window.name_list_file = file_names;
-    
-    const name_type_list_set = [
-        ...function_names, 
-        ...variable_names, 
-        ...dom_class_names,
-        ...parameter_names,
-        ...constant_names,
-        ...event_names,
-        ...property_names,
-        ...file_names
-    ];
-    
-    return name_type_list_set;
-};
-const name_list_dom_render = (name_string, term_previous_list = null) => {
-    window.name_list_func['name_list_dom_render'] = name_list_dom_render;
-    
-    const name_element = dom_element_create('li');
-    dom_element_class_add(name_element, 'name');
-    
-    const name_type_function_is  = Object.keys(window.name_list_func).includes(name_string);
-    const name_type_class_is     = window.name_list_class.includes(name_string);
-    const name_type_parameter_is = window.name_list_param.includes(name_string);
-    const name_type_constant_is  = window.name_list_const.includes(name_string);
-    const name_type_event_is     = window.name_list_event.includes(name_string);
-    const name_type_property_is  = window.name_list_propt.includes(name_string);
-    const name_type_file_is      = window.name_list_file.includes(name_string);
-    const name_type_variable_is  = Object.keys(window.name_list_var).includes(name_string);
-    const name_type_window_is     = window.name_list_window.includes(name_string);
-    
-    let type_class_name = 'name_variable';
-    if (name_type_function_is) {
-        type_class_name = 'name_function';
-    } else if (name_type_class_is) {
-        type_class_name = 'name_class';
-    } else if (name_type_parameter_is) {
-        type_class_name = 'name_parameter';
-    } else if (name_type_constant_is) {
-        type_class_name = 'name_constant';
-    } else if (name_type_event_is) {
-        type_class_name = 'name_event';
-    } else if (name_type_property_is) {
-        type_class_name = 'name_property';
-    } else if (name_type_file_is) {
-        type_class_name = 'name_file';
-    } else if (name_type_window_is) {
-        type_class_name = 'name_window';
-    }
-    
-    dom_element_class_add(name_element, type_class_name);
-    
-    name_element.addEventListener('click', () => {
-        navigator.clipboard.writeText(name_string);
-        name_element.classList.add('name_copied');
-        
-        setTimeout(() => {
-            name_element.classList.remove('name_copied');
-        }, 1000);
-    });
-    
-    const term_list = term_list_extract(name_string);
-    const term_list_same_is = term_list_compare(term_list, term_previous_list);
-    
-    const term_container_element = dom_element_create('div');
-    dom_element_class_add(term_container_element, 'term_container');
-    
-    term_list.forEach((term, index) => {
-        // Add term element
-        const term_same_is = term_list_same_is[index];
-        const term_style_class_name = term_style_get(term_same_is);
-        
-        const term_element = dom_element_create('span');
-        dom_element_class_add(term_element, 'term');
-        dom_element_class_add(term_element, term_style_class_name);
-        dom_element_text_set(term_element, term);
-        dom_element_append(term_container_element, term_element);
-        
-        // Add separator if not the last term
-        if (index < term_list.length - 1) {
-            const separator_element = dom_element_create('span');
-            dom_element_class_add(separator_element, 'separator');
-            dom_element_class_add(separator_element, term_style_class_name.replace('term', 'separator'));
-            
-            // Choose the right separator based on the name type
-            let separator_char = '_';  // Default for most identifiers
-            
-            // Only handle file paths with slashes specially
-            if (name_type_file_is && name_string.includes('/')) {
-                // Check if term ends with /, indicating it's a directory part
-                if (term.endsWith('/')) {
-                    separator_char = '';  // No separator needed as / is already in the term
-                } else {
-                    separator_char = '/';  // Use / for path elements
-                }
-            }
-            
-            dom_element_text_set(separator_element, separator_char);
-            dom_element_append(term_container_element, separator_element);
-        }
-    });
-    
-    dom_element_append(name_element, term_container_element);
-    
-    return { 
-        name_element : name_element,
-        term_list    : term_list 
+
+    return {
+        function_names,
+        variable_names,
+        dom_class_names,
+        parameter_names,
+        constant_names,
+        event_names,
+        property_names,
+        file_names,
+        store_names
     };
 };
+
+// Call defineNameLists immediately to ensure lists are available
+const nameLists = defineNameLists();
+
+// Initialize global state
+window.name_list_func  = {};
+window.name_list_var   = {};
+window.name_list_class = [];
+window.name_list_param = [];
+window.name_list_const = [];
+window.name_list_event = [];
+window.name_list_propt = [];
+window.name_list_file  = [];
+window.name_list_window = [];
+
+window.filter_on_list  = {
+    func_on    : true,
+    var_on     : true,
+    class_on   : true,
+    param_on   : true,
+    const_on   : true,
+    event_on   : true,
+    propt_on   : true,
+    file_on    : true,
+    window_on  : true,
+    search_query : ''
+};
+
+window.root_open_state            = {};
+window.search_root_previous_state = {};
+window.search_root_match         = {};
+window.search_timeout            = null;
+window.search_delay_ms           = 300;
+
+// Add lookup state to window
+window.lookup_state = {
+    active_name: null,
+    snippets: [],
+    visible: false
+};
+
+// App functions
+const app_event_listener_setup = () => {
+    window.name_list_func['app_event_listener_setup'] = app_event_listener_setup;
+    
+    // Set up filter buttons
+    const filter_function_element = document.getElementById('filter_function');
+    const filter_variable_element = document.getElementById('filter_variable');
+    const filter_class_element = document.getElementById('filter_class');
+    const filter_parameter_element = document.getElementById('filter_parameter');
+    const filter_constant_element = document.getElementById('filter_constant');
+    const filter_event_element = document.getElementById('filter_event');
+    const filter_property_element = document.getElementById('filter_property');
+    const filter_file_element = document.getElementById('filter_file');
+    const filter_window_element = document.getElementById('filter_window');
+    const filter_reset_all_element = document.getElementById('filter_reset_all');
+    
+    // Add event listeners to filter buttons
+    if (filter_function_element) {
+        filter_type_function_event_add(filter_function_element);
+    }
+    if (filter_variable_element) {
+        filter_type_variable_event_add(filter_variable_element);
+    }
+    if (filter_class_element) {
+        filter_type_class_event_add(filter_class_element);
+    }
+    if (filter_parameter_element) {
+        filter_type_event_add(filter_parameter_element, 'parameter');
+    }
+    if (filter_constant_element) {
+        filter_type_event_add(filter_constant_element, 'constant');
+    }
+    if (filter_event_element) {
+        filter_type_event_add(filter_event_element, 'event');
+    }
+    if (filter_property_element) {
+        filter_type_event_add(filter_property_element, 'property');
+    }
+    if (filter_file_element) {
+        filter_type_event_add(filter_file_element, 'file');
+    }
+    if (filter_window_element) {
+        filter_type_event_add(filter_window_element, 'window');
+    }
+    if (filter_reset_all_element) {
+        filter_reset_all_element.addEventListener('click', () => {
+            filter_all_reset();
+        });
+    }
+    
+    // Set up search input
+    const search_input_element = document.getElementById('name_search_input');
+    const search_clear_element = document.getElementById('name_search_clear');
+    
+    if (search_input_element) {
+        search_input_element.addEventListener('input', (event) => {
+            const query = event.target.value;
+            
+            // Show/hide clear button
+            if (search_clear_element) {
+                search_clear_element.classList.toggle('visible', query.length > 0);
+            }
+            
+            // Clear any existing timeout
+            if (window.search_timeout) {
+                clearTimeout(window.search_timeout);
+            }
+            
+            // Set a new timeout to apply the search
+            window.search_timeout = setTimeout(() => {
+                search_apply(query);
+            }, window.search_delay_ms);
+        });
+        
+        // Handle Enter key
+        search_input_element.addEventListener('keydown', (event) => {
+            if (event.key === 'Enter') {
+                event.preventDefault();
+                search_apply(event.target.value);
+            }
+        });
+    }
+    
+    if (search_clear_element) {
+        search_clear_element.addEventListener('click', () => {
+            if (search_input_element) {
+                search_input_element.value = '';
+                search_input_element.focus();
+                search_apply('');
+            }
+            search_clear_element.classList.remove('visible');
+        });
+    }
+    
+    // Set up root toggle all button
+    const root_toggle_all_element = document.getElementById('root_toggle_all');
+    if (root_toggle_all_element) {
+        root_toggle_all_element.addEventListener('click', () => {
+            const is_open = root_toggle_all_element.textContent === '▼';
+            root_toggle_all_element.textContent = is_open ? '▶' : '▼';
+            
+            if (is_open) {
+                root_close_all();
+            } else {
+                root_open_all();
+            }
+        });
+    }
+    
+    // Set up text field event listeners
+    const text_field = document.getElementById('name_text_field');
+    if (text_field) {
+        // Handle text field blur (clicking outside)
+        document.addEventListener('click', (event) => {
+            if (!text_field.contains(event.target) && 
+                !event.target.closest('.name')) {
+                text_field.classList.remove('visible');
+            }
+        });
+        
+        // Handle text field input
+        text_field.addEventListener('input', (event) => {
+            const current_name = text_field.dataset.currentName;
+            if (current_name) {
+                console.log(`Text for ${current_name}:`, event.target.value);
+                // You can add additional handling here
+            }
+        });
+        
+        // Handle Enter key
+        text_field.addEventListener('keydown', (event) => {
+            if (event.key === 'Enter') {
+                const current_name = text_field.dataset.currentName;
+                if (current_name) {
+                    console.log(`Submitted text for ${current_name}:`, text_field.value);
+                    // You can add additional handling here
+                    text_field.classList.remove('visible');
+                }
+            } else if (event.key === 'Escape') {
+                text_field.classList.remove('visible');
+            }
+        });
+    }
+};
+
+// Add temporary diagnostic logging function
+const diag_log = (...args) => {
+    // Only log critical diagnostics
+    if (args[0] && (args[0].includes('ERROR') || args[0].includes('INITIALIZE') || args[0].includes('LOOKUP'))) {
+        console.log('%c[DIAG]', 'background: #ff6b6b; color: white; padding: 2px 4px; border-radius: 2px;', ...args);
+    }
+};
+
+// Add debug logging function with clear categorization
+const debug = (category, ...args) => {
+    // Categories: CLICK, LOOKUP, DOM, STATE
+    const styles = {
+        CLICK: 'background: #9b59b6; color: white;',
+        LOOKUP: 'background: #3498db; color: white;',
+        DOM: 'background: #2ecc71; color: white;',
+        STATE: 'background: #f39c12; color: white;',
+        ERROR: 'background: #e74c3c; color: white;'
+    };
+    
+    const style = styles[category] || 'background: #7f8c8d; color: white;';
+    console.log(`%c[DEBUG.${category}]`, `${style} padding: 2px 4px; border-radius: 2px;`, ...args);
+};
+
+// Add HTML content diagnostic function
+const diag_html = () => {
+    // Skip detailed HTML content logging
+};
+
+// Modify the script loading section in HTML
+document.addEventListener('DOMContentLoaded', () => {
+    diag_log('=== DOM CONTENT LOADED EVENT ===');
+    diag_html();
+    diag_log('About to call app_init...');
+    app_init();
+});
+
+// Modify app_init to handle DOM loading state
+const app_init = () => {
+    try {
+        diag_log('=== APP INIT START ===');
+        diag_log('Current DOM state:', document.readyState);
+        diag_log('Document body children:', document.body.children.length);
+        diag_log('Lookup container exists:', !!document.querySelector('.lookup_container'));
+        diag_html(); // Add HTML content check
+        
+        log('APP.INIT', 'Starting app initialization...');
+        
+        // If DOM isn't ready, wait for it
+        if (document.readyState !== 'complete') {
+            diag_log('DOM not complete, waiting...');
+            log('APP.DOM', 'DOM not fully loaded, waiting for complete state...');
+            document.addEventListener('readystatechange', () => {
+                diag_log('readystatechange event:', document.readyState);
+                diag_log('Lookup container exists:', !!document.querySelector('.lookup_container'));
+                diag_html(); // Add HTML content check
+                if (document.readyState === 'complete') {
+                    diag_log('DOM complete, scheduling init...');
+                    log('APP.DOM', 'DOM now fully loaded, proceeding with initialization');
+                    // Add a small delay to ensure all elements are properly loaded
+                    setTimeout(() => {
+                        diag_log('Timeout fired, starting init...');
+                        diag_html(); // Add HTML content check
+                        initializeApp();
+                    }, 100);
+                }
+            });
+            return;
+        }
+        
+        // If DOM is ready, proceed with initialization after a small delay
+        diag_log('DOM already complete, scheduling init...');
+        setTimeout(() => {
+            diag_log('Timeout fired, starting init...');
+            diag_html(); // Add HTML content check
+            initializeApp();
+        }, 100);
+    } catch (error) {
+        diag_log('Error in app_init:', error);
+        log('ERROR', 'Error during app initialization:', error);
+        showError(error);
+    }
+};
+
+// Separate the actual initialization logic
+const initializeApp = () => {
+    try {
+        diag_log('=== INITIALIZE APP START ===');
+        diag_log('Document readyState:', document.readyState);
+        diag_log('Document body children:', document.body.children.length);
+        diag_log('All script elements:', document.querySelectorAll('script').length);
+        diag_log('Script elements in order:', Array.from(document.querySelectorAll('script')).map(s => s.src || 'inline'));
+        diag_html(); // Add HTML content check
+        
+        log('APP.INIT', 'Proceeding with app initialization...');
+        
+        // Verify required elements exist
+        const index_element = document.getElementById('index');
+        diag_log('Index element exists:', !!index_element);
+        if (!index_element) {
+            throw new Error('Index element not found!');
+        }
+        log('APP.DOM', 'Found index element:', index_element);
+        
+        // Initialize lookup FIRST before checking for container
+        diag_log('About to call lookup_init...');
+        lookup_init();
+        diag_log('lookup_init completed');
+        log('APP.LOOKUP', 'Lookup initialized');
+        
+        // Now check for lookup container - should be created by lookup_init if missing
+        const lookup_container = document.querySelector('.lookup_container');
+        diag_log('Lookup container details:', {
+            exists: !!lookup_container,
+            parent: lookup_container ? lookup_container.parentElement.className : 'none',
+            siblings: lookup_container ? lookup_container.parentElement.children.length : 0,
+            html: lookup_container ? lookup_container.outerHTML : 'none'
+        });
+        if (!lookup_container) {
+            throw new Error('Lookup container not found even after lookup_init!');
+        }
+        log('APP.DOM', 'Found lookup container:', lookup_container);
+        
+        // Verify filter buttons exist
+        const filter_buttons = document.querySelectorAll('.filter');
+        diag_log('Filter buttons count:', filter_buttons.length);
+        if (filter_buttons.length === 0) {
+            throw new Error('No filter buttons found!');
+        }
+        log('APP.DOM', 'Found filter buttons:', filter_buttons.length);
+        
+        // Initialize name lists
+        const name_list = name_list_const_set();
+        diag_log('Name list initialized:', {
+            success: !!name_list,
+            count: name_list ? name_list.length : 0
+        });
+        if (!name_list || name_list.length === 0) {
+            throw new Error('Name list initialization failed!');
+        }
+        log('APP.NAME', 'Name list initialized with', name_list.length, 'items');
+        
+        // Set up event listeners
+        app_event_listener_setup();
+        log('APP.EVENT', 'Event listeners set up');
+        
+        // Reset filters and apply them
+        filter_all_reset();
+        log('APP.FILTER', 'Filters reset');
+        
+        // Apply filters to show initial list
+        filter_name_apply();
+        log('APP.FILTER', 'Initial filter application complete');
+        
+        // Verify the index was populated
+        const name_elements = index_element.querySelectorAll('.name');
+        diag_log('Index population:', {
+            elements: name_elements.length,
+            firstElement: name_elements[0] ? name_elements[0].textContent : 'none'
+        });
+        log('APP.DOM', 'Index populated with', name_elements.length, 'names');
+        
+        if (name_elements.length === 0) {
+            throw new Error('Index was not populated with any names!');
+        }
+        
+        // Additional checks to ensure click handlers are working
+        diag_log('Verifying name click handlers...');
+        console.log('Verifying name click handlers on', name_elements.length, 'name elements');
+        
+        // Test click handler on first element
+        if (name_elements.length > 0) {
+            const testElement = name_elements[0];
+            const testName = testElement.textContent.trim();
+            diag_log('First name element text:', testName);
+            console.log('First name element text:', testName);
+            
+            // Final backup to ensure all name elements have click handlers
+            console.log('Ensuring all name elements have click handlers');
+            name_elements.forEach((el, index) => {
+                // Get the name string from the element's text content
+                const nameText = el.textContent.trim();
+                
+                // Make sure element has the necessary CSS classes
+                if (!el.classList.contains('name')) {
+                    el.classList.add('name');
+                }
+                
+                // Ensure the click handler is attached
+                if (!el.onclick) {
+                    el.onclick = function(event) {
+                        console.log('Backup click handler triggered for:', nameText);
+                        
+                        // Prevent default behavior and event propagation
+                        event.preventDefault();
+                        event.stopPropagation();
+                        
+                        // Add copy animation class
+                        this.classList.add('name_copied');
+                        
+                        // Copy to clipboard
+                        try {
+                            navigator.clipboard.writeText(nameText);
+                            console.log('Copied to clipboard:', nameText);
+                        } catch (error) {
+                            console.error('Could not copy to clipboard:', error);
+                        }
+                        
+                        // Remove animation class after timeout
+                        setTimeout(() => {
+                            this.classList.remove('name_copied');
+                        }, 1000);
+                        
+                        return false; // Prevent default and bubbling
+                    };
+                }
+            });
+            
+            // Add an indicator to the first element for testing
+            const indicator = document.createElement('span');
+            indicator.style.position = 'absolute';
+            indicator.style.right = '0';
+            indicator.style.top = '0';
+            indicator.style.background = '#61dafb';
+            indicator.style.color = 'white';
+            indicator.style.padding = '2px 4px';
+            indicator.style.borderRadius = '2px';
+            indicator.style.fontSize = '10px';
+            indicator.style.zIndex = '100';
+            indicator.textContent = 'click me';
+            testElement.style.position = 'relative';
+            testElement.appendChild(indicator);
+            diag_log('Added indicator to first name element');
+            console.log('Added indicator to first name element');
+        }
+        
+        diag_log('=== INITIALIZE APP COMPLETE ===');
+        log('APP.INIT', 'App initialization completed successfully');
+    } catch (error) {
+        diag_log('Error in initializeApp:', error);
+        log('ERROR', 'Error during app initialization:', error);
+        showError(error);
+    }
+};
+
 const name_list_get = () => {
     window.name_list_func['name_list_get'] = name_list_get;
     
-    if (window.name_list_class.length > 0) {
+    if (window.name_list_class && window.name_list_class.length > 0) {
         return [
             ...Object.keys(window.name_list_func),
             ...Object.keys(window.name_list_var),
@@ -1034,58 +732,38 @@ const name_list_get = () => {
     
     return name_list_const_set();
 };
+
 const name_list_order_get = () => {
     window.name_list_func['name_list_order_get'] = name_list_order_get;
     
     const name_list = name_list_get();
+    
+    if (name_list.length === 0) {
+        return [];
+    }
+    
     return array_sort_alphabetically(name_list);
 };
+
 const search_apply = (search_query) => {
     window.name_list_func['search_apply'] = search_apply;
     
     // Validate and normalize the query
     search_query = search_query_validate(search_query);
     
-    // First-time initialization
-    if (!window.search_root_previous_state) {
-        window.search_root_previous_state = {};
-    }
-    
-    // Entering search mode for the first time
-    if (!window.filter_on_list.search_query && search_query) {
-        // Save current state before modifying for search
-        window.search_root_previous_state = { ...window.root_open_state };
-    }
-    
-    const previous_search = window.filter_on_list.search_query;
-    
-    // When starting a new search (either first search or changing search terms)
-    if (search_query && search_query !== previous_search) {
-        // Reset matched roots for new search
-        window.search_root_match = {};
-    }
-    
-    // Update the filter state with the new search query
+    // Update the filter state
     window.filter_on_list.search_query = search_query;
     
-    // If search query is present, find roots with matches
-    if (search_query && search_query.length > 0) {
-        const search_lower = search_query.toLowerCase();
-        const all_names = name_list_get();
-        
-        // Find all names that match the search
-        all_names.forEach(name_string => {
-            if (search_matches(name_string, search_lower)) {
-                // Get the root term and mark it for opening
-                const root_name = root_extract(name_string);
-                window.root_open_state[root_name] = true;
-                // Remember this root was matched for future reference
-                window.search_root_match[root_name] = true;
-            }
-        });
-    } 
-    // When exiting search mode (had search, now cleared)
-    else if (previous_search && !search_query) {
+    // Clear any existing search timeout
+    if (window.search_timeout) {
+        clearTimeout(window.search_timeout);
+    }
+    
+    // Save current root state before search
+    if (search_query) {
+        window.search_root_previous_state = { ...window.root_open_state };
+        window.search_root_match = {};
+    } else {
         // First restore the state from before search
         window.root_open_state = { ...window.search_root_previous_state };
         
@@ -1099,7 +777,7 @@ const search_apply = (search_query) => {
     filter_name_apply();
 };
 
-// Helper function to validate and normalize a search query
+// Add search query validate function
 const search_query_validate = (query) => {
     window.name_list_func['search_query_validate'] = search_query_validate;
     
@@ -1110,7 +788,7 @@ const search_query_validate = (query) => {
     return query;
 };
 
-// Helper function to determine if a name matches the search
+// Add search matches function
 const search_matches = (name_string, search_lower) => {
     window.name_list_func['search_matches'] = search_matches;
     
@@ -1149,7 +827,9 @@ const term_list_compare = (term_list, term_previous_list) => {
     const result = term_list.map((term, index) => {
         if (!term_previous_match_all) return false;
         
-        const term_current_match = index < term_previous_list.length && term_previous_list[index] === term;
+        // Extract text from term_previous_list if it exists
+        const prev_term = index < term_previous_list.length ? term_previous_list[index].text : null;
+        const term_current_match = prev_term === term;
         
         if (!term_current_match) {
             term_previous_match_all = false;
@@ -1160,31 +840,23 @@ const term_list_compare = (term_list, term_previous_list) => {
     
     return result;
 };
+
 const term_list_extract = (name_string) => {
     window.name_list_func['term_list_extract'] = term_list_extract;
     
-    // Special handling for file paths with slashes only
+    // Special handling for file paths with slashes
     if (name_string.includes('/')) {
-        // For paths, split by '/' but keep the structure
         return name_string.split('/').filter(Boolean);
     }
     
-    // Only split by underscores, no special treatment for dots
-    if (name_string.includes('_')) {
-        return string_by_separator_split(name_string, '_');
-    }
-    
-    // If there are no separators, return the whole string as a single term
-    return [name_string];
-};
-const term_style_get = (term_same_is) => {
-    window.name_list_func['term_style_get'] = term_style_get;
-    
-    return term_same_is ? 'term_gray' : 'term_white';
+    // Split by underscores
+    return name_string.split('_');
 };
 
-// Execute the app
-document.addEventListener('DOMContentLoaded', app_init);
+const term_style_get = (term_same_is) => {
+    window.name_list_func['term_style_get'] = term_style_get;
+    return term_same_is ? 'term_gray' : 'term_white';
+};
 
 // Root functions
 const root_extract = (name_string) => {
@@ -1210,6 +882,7 @@ const root_open_all = () => {
     
     // Get all root groups that are not already opened
     const headers = document.querySelectorAll('.root_term_header:not(.root_header_hidden)');
+    
     
     // For each header, get its content and toggle it open
     headers.forEach(header => {
@@ -1259,66 +932,119 @@ const root_close_all = () => {
 const root_group_create = (root_name, names_in_group, index_element) => {
     window.name_list_func['root_group_create'] = root_group_create;
     
-    if (names_in_group.length === 0) return null;
+    log('APP.DOM', 'Creating root group for:', root_name, 'with', names_in_group.length, 'names');
     
-    // Sort the names in the group case-insensitively
-    names_in_group.sort((a, b) => {
-        return a.toLowerCase().localeCompare(b.toLowerCase());
+    // Create root group container (this will hold both header and content)
+    const root_group = dom_element_create('div');
+    dom_element_class_add(root_group, 'root_term_group');
+    
+    // Create header with caret
+    const header_element = root_header_create(root_name, names_in_group);
+    dom_element_append(root_group, header_element);
+    
+    // Create content container for the names
+    const content_element = dom_element_create('div');
+    dom_element_class_add(content_element, 'root_term_content');
+    
+    // Add names to the content element
+    let term_previous_list = null;
+    names_in_group.forEach((name_string, index) => {
+        const { name_element, term_list } = name_list_dom_render(name_string, term_previous_list);
+        
+        // Add root toggle button to the first item in the expanded view
+        if (index === 0) {
+            // Create the root open/close button for the first name in group
+            const rootOpenButton = dom_element_create('button');
+            dom_element_class_add(rootOpenButton, 'name_root_open');
+            dom_element_text_set(rootOpenButton, '▼');
+            
+            // Add click handler with capture phase
+            rootOpenButton.addEventListener('click', (event) => {
+                event.preventDefault();
+                event.stopPropagation();
+                event.stopImmediatePropagation();
+                
+                console.log('First item root toggle button clicked');
+                
+                // Toggle the root group
+                toggleRootGroup(header_element, content_element, root_name);
+                
+                return false;
+            }, true); // Using capture phase to ensure this handler runs first
+            
+            // Add the button to the name element
+            dom_element_append(name_element, rootOpenButton);
+            
+            // Add root_item class to identify it
+            name_element.classList.add('root_item');
+        }
+        
+        dom_element_append(content_element, name_element);
+        term_previous_list = term_list;
     });
     
-    // Determine the predominant type for styling
-    let predominant_type = root_type_determine(names_in_group);
+    // Add content to the group
+    dom_element_append(root_group, content_element);
     
-    // Create the root term group container
-    const group_element = dom_element_create('div');
-    dom_element_class_add(group_element, 'root_term_group');
-    
-    // Create header with contents
-    const header_element = root_header_create(root_name, predominant_type);
-    
-    // Create content container for names
-    const content_element = root_content_create(names_in_group);
-    
-    // Connect header click to toggle content visibility
+    // Connect header and content with event handling
     root_connect(header_element, content_element, root_name);
     
-    // Add the group to the index
-    dom_element_append(group_element, header_element);
-    dom_element_append(group_element, content_element);
-    dom_element_append(index_element, group_element);
+    // Add group to index
+    dom_element_append(index_element, root_group);
     
-    return group_element;
+    log('APP.DOM', 'Added root group to index:', root_name);
+    
+    // Set initial open state
+    const is_open = window.root_open_state[root_name] || false;
+    if (is_open) {
+        content_element.classList.add('expanded');
+        header_element.classList.add('root_header_hidden');
+    }
+    
+    return root_group;
 };
 
-const root_header_create = (root_name, predominant_type) => {
+const root_header_create = (root_name, names_in_group) => {
     window.name_list_func['root_header_create'] = root_header_create;
+    
+    log('APP.DOM', 'Creating header for root:', root_name);
     
     const header_element = dom_element_create('div');
     dom_element_class_add(header_element, 'root_term_header');
-    dom_element_class_add(header_element, `root_term_${predominant_type}`);
     
-    const caret_element = dom_element_create('span');
-    dom_element_class_add(caret_element, 'root_term_caret');
-    dom_element_text_set(caret_element, '▶');
-    dom_element_append(header_element, caret_element);
+    // Create button element instead of a caret span
+    const button_element = dom_element_create('button');
+    dom_element_class_add(button_element, 'name_root_open');
+    dom_element_text_set(button_element, '▶');
+    dom_element_append(header_element, button_element);
     
-    // For a more consistent look with regular names, add a term container
+    // Create term container
     const term_container_element = dom_element_create('div');
-    dom_element_class_add(term_container_element, 'term_container');
+    dom_element_class_add(term_container_element, 'root_term_container');
     
-    // Modify how we create the text element for root terms
+    // Create text element
     const text_element = dom_element_create('span');
     dom_element_class_add(text_element, 'root_term_text');
     dom_element_text_set(text_element, root_name);
-    dom_element_append(term_container_element, text_element);
     
+    // Determine color class based on first name in group
+    if (names_in_group && names_in_group.length > 0) {
+        const first_name = names_in_group[0];
+        const type = name_type_determine(first_name);
+        dom_element_class_add(text_element, `root_term_text_${type}`);
+    }
+    
+    dom_element_append(term_container_element, text_element);
     dom_element_append(header_element, term_container_element);
+    log('APP.DOM', 'Header creation complete for root:', root_name);
     
     return header_element;
 };
 
 const root_content_create = (names_in_group) => {
     window.name_list_func['root_content_create'] = root_content_create;
+    
+    log('APP.DOM', 'Creating content for', names_in_group.length, 'names');
     
     const content_element = dom_element_create('div');
     dom_element_class_add(content_element, 'root_term_content');
@@ -1327,111 +1053,163 @@ const root_content_create = (names_in_group) => {
     let term_previous_list = null;
     let name_string_previous = null;
     
-    names_in_group.forEach(name_string => {
+    names_in_group.forEach((name_string, index) => {
+        log('APP.DOM', 'Rendering name', index + 1, 'of', names_in_group.length, ':', name_string);
+        
         const term_previous_use_is = name_string_previous !== null;
         const term_previous_list_effective = term_previous_use_is ? term_previous_list : null;
         
         const { name_element, term_list } = name_list_dom_render(name_string, term_previous_list_effective);
-        dom_element_append(content_element, name_element);
+        if (!name_element) {
+            log('ERROR', 'Failed to render name:', name_string);
+            return;
+        }
         
-        // Update the previous terms and name for the next iteration
+        dom_element_append(content_element, name_element);
+        log('APP.DOM', 'Added name to content:', name_string);
+        
         term_previous_list = term_list;
         name_string_previous = name_string;
     });
     
+    log('APP.DOM', 'Content creation complete with', content_element.children.length, 'names');
     return content_element;
 };
 
 const root_connect = (header_element, content_element, root_name) => {
     window.name_list_func['root_connect'] = root_connect;
     
-    const caret_element = header_element.querySelector('.root_term_caret');
-    const root_text_element = header_element.querySelector('.root_term_text');
-    
-    if (!caret_element || !root_text_element) return;
-    
-    // Add click handler for the root text to copy the root name
-    root_text_element.addEventListener('click', (event) => {
-        event.stopPropagation(); // Prevent toggle
-        navigator.clipboard.writeText(root_name);
+    // Add click event to header button
+    const toggleButton = header_element.querySelector('.name_root_open');
+    if (toggleButton) {
+        // Remove any existing listeners first
+        const newButton = toggleButton.cloneNode(true);
+        if (toggleButton.parentNode) {
+            toggleButton.parentNode.replaceChild(newButton, toggleButton);
+        }
         
-        // Add a brief animation/feedback for the copy
-        root_text_element.classList.add('name_copied');
-        setTimeout(() => {
-            root_text_element.classList.remove('name_copied');
-        }, 1000);
-    });
-    
-    // Apply saved open state if it exists
-    if (window.root_open_state[root_name]) {
-        // Open the content
-        content_element.classList.add('expanded');
-        
-        // Hide the header
-        header_element.classList.add('root_header_hidden');
+        // Add new click handler with higher priority
+        newButton.addEventListener('click', (event) => {
+            event.preventDefault();
+            event.stopPropagation();
+            event.stopImmediatePropagation();
+            
+            console.log('Root toggle button clicked');
+            
+            // Toggle the root group
+            toggleRootGroup(header_element, content_element, root_name);
+            
+            return false;
+        }, true); // Using capture phase to ensure this handler runs first
     }
     
-    // Add click event to toggle the group (but only when clicking on the header, not the text)
+    // Add click event to the header itself (separate from the button)
     header_element.addEventListener('click', (event) => {
-        // Make sure we're not clicking on the root_text_element
-        if (event.target !== root_text_element) {
-            toggleRootGroup(header_element, content_element, root_name);
+        // Skip if clicking on the button
+        if (event.target && event.target.classList && event.target.classList.contains('name_root_open')) {
+            return;
         }
-    });
-    
-    // Add click event to the first child's caret (when header is hidden)
-    content_element.addEventListener('click', (event) => {
-        // Only process clicks when content is opened
-        if (!content_element.classList.contains('expanded')) return;
         
-        const firstChild = content_element.querySelector('.name:first-child');
-        if (!firstChild) return;
-        
-        // Check if click was in the caret area (30px to the left of the first child)
-        const firstChildRect = firstChild.getBoundingClientRect();
-        const isInCaretArea = (event.clientX < firstChildRect.left - 5) && 
-                             (event.clientX > firstChildRect.left - 35) &&
-                             (event.clientY >= firstChildRect.top) &&
-                             (event.clientY <= firstChildRect.bottom);
-                             
-        if (isInCaretArea) {
-            event.preventDefault();
+        // Only toggle if clicking directly on the header text or container
+        if (event.target === header_element || 
+            event.target.classList.contains('root_term_text') ||
+            event.target.classList.contains('root_term_container')) {
+            
             event.stopPropagation();
             toggleRootGroup(header_element, content_element, root_name);
         }
-    });
+    }, false); // Using bubbling phase
 };
 
-// New helper function to toggle root groups
+// Update toggleRootGroup to better handle replacement of header with content
 const toggleRootGroup = (header_element, content_element, root_name) => {
     window.name_list_func['toggleRootGroup'] = toggleRootGroup;
     
-    const isOpen = !content_element.classList.contains('expanded');
+    // Check if the content is currently expanded
+    const isCurrentlyOpen = content_element.classList.contains('expanded');
     
-    // Toggle content visibility
-    content_element.classList.toggle('expanded');
-    
-    // Toggle header visibility
-    if (isOpen) {
-        header_element.classList.add('root_header_hidden');
-        
-        // Add root indicator class to first item
-        const firstItem = content_element.querySelector('.name:first-child');
-        if (firstItem) {
-            firstItem.classList.add('root_item');
-        }
-    } else {
+    if (isCurrentlyOpen) {
+        // If currently open, close it and show the header
+        content_element.classList.remove('expanded');
         header_element.classList.remove('root_header_hidden');
+        
+        // Make sure header is completely visible
+        header_element.style.display = '';
+        header_element.style.visibility = 'visible';
+        header_element.style.opacity = '1';
+        header_element.style.pointerEvents = 'auto';
+        header_element.style.height = '30px';
         
         // Remove root indicator class from all items
         const rootItems = content_element.querySelectorAll('.root_item');
         rootItems.forEach(item => {
             item.classList.remove('root_item');
         });
+        
+        // Update button text in header
+        const headerButton = header_element.querySelector('.name_root_open');
+        if (headerButton) {
+            headerButton.textContent = '▶';
+            // Force the button to be visible and clickable
+            headerButton.style.visibility = 'visible';
+            headerButton.style.pointerEvents = 'auto';
+        }
+        
+        // Update state
+        window.root_open_state[root_name] = false;
+    } else {
+        // If currently closed, open it and completely hide the header
+        content_element.classList.add('expanded');
+        header_element.classList.add('root_header_hidden');
+        
+        // Force header to be completely hidden
+        header_element.style.display = 'none'; 
+        header_element.style.visibility = 'hidden';
+        header_element.style.opacity = '0';
+        header_element.style.pointerEvents = 'none';
+        header_element.style.height = '0';
+        
+        // Add root indicator class to first item
+        const firstItem = content_element.querySelector('.name:first-child');
+        if (firstItem) {
+            firstItem.classList.add('root_item');
+            
+            // Ensure the first item has a toggle button
+            let firstItemButton = firstItem.querySelector('.name_root_open');
+            if (!firstItemButton) {
+                // Create a new button if it doesn't exist
+                firstItemButton = document.createElement('button');
+                firstItemButton.className = 'name_root_open';
+                firstItemButton.textContent = '▼';
+                
+                // Add click handler with capture phase
+                firstItemButton.addEventListener('click', (event) => {
+                    event.preventDefault();
+                    event.stopPropagation();
+                    event.stopImmediatePropagation();
+                    
+                    console.log('Dynamically added button clicked');
+                    
+                    // Toggle the root group
+                    toggleRootGroup(header_element, content_element, root_name);
+                    
+                    return false;
+                }, true);
+                
+                // Add to the first item
+                firstItem.appendChild(firstItemButton);
+            } else {
+                // Update text if button exists
+                firstItemButton.textContent = '▼';
+                // Force the button to be visible and clickable
+                firstItemButton.style.visibility = 'visible';
+                firstItemButton.style.pointerEvents = 'auto';
+            }
+        }
+        
+        // Update state
+        window.root_open_state[root_name] = true;
     }
-    
-    // Save the open state for this root term
-    window.root_open_state[root_name] = isOpen;
 };
 
 const root_toggle = (caret_element) => {
@@ -1449,43 +1227,895 @@ const root_toggle = (caret_element) => {
 const root_type_determine = (names_in_group) => {
     window.name_list_func['root_type_determine'] = root_type_determine;
     
+    // Count occurrences of each type
     const type_counts = {
         function: 0,
-        variable: 0,
         class: 0,
         parameter: 0,
         constant: 0,
         event: 0,
-        property: 0
+        property: 0,
+        file: 0,
+        window: 0,
+        variable: 0
     };
     
-    names_in_group.forEach(name_string => {
-        if (Object.keys(window.name_list_func).includes(name_string)) {
-            type_counts.function++;
-        } else if (window.name_list_class.includes(name_string)) {
-            type_counts.class++;
-        } else if (window.name_list_param.includes(name_string)) {
-            type_counts.parameter++;
-        } else if (window.name_list_const.includes(name_string)) {
-            type_counts.constant++;
-        } else if (window.name_list_event.includes(name_string)) {
-            type_counts.event++;
-        } else if (window.name_list_propt.includes(name_string)) {
-            type_counts.property++;
-        } else {
-            type_counts.variable++;
-        }
+    names_in_group.forEach(name => {
+        const type = name_type_determine(name);
+        type_counts[type]++;
     });
     
+    // Find the most common type
     let predominant_type = 'variable';
     let max_count = 0;
     
-    for (const type in type_counts) {
-        if (type_counts[type] > max_count) {
+    for (const [type, count] of Object.entries(type_counts)) {
+        if (count > max_count) {
+            max_count = count;
             predominant_type = type;
-            max_count = type_counts[type];
         }
     }
     
     return predominant_type;
+};
+
+// Update the standalone close button creation
+function createStandaloneCloseButton() {
+    // Remove any existing standalone close button
+    let existing = document.getElementById('standalone_close_button');
+    if (existing) {
+        existing.parentNode.removeChild(existing);
+    }
+    
+    // Get lookup container
+    const lookupContainer = document.querySelector('.lookup_container');
+    if (!lookupContainer) {
+        console.error('No lookup container found for close button');
+        return null;
+    }
+    
+    // Create a new button directly attached to the lookup container
+    const closeButton = document.createElement('button');
+    closeButton.id = 'standalone_close_button';
+    closeButton.textContent = '×';
+    closeButton.title = 'Close lookup panel';
+    
+    // Add styles directly to the element
+    Object.assign(closeButton.style, {
+        position: 'absolute',
+        top: '5px',
+        right: '5px',
+        zIndex: '200', // Higher z-index than name_root_open buttons
+        width: '40px',
+        height: '40px',
+        fontSize: '28px',
+        fontWeight: 'bold',
+        background: '#444',
+        color: '#fff',
+        border: '2px solid #666',
+        borderRadius: '50%',
+        cursor: 'pointer',
+        display: 'flex',
+        alignItems: 'center',
+        justifyContent: 'center',
+        padding: '0',
+        boxShadow: '0 0 10px rgba(0,0,0,0.5)',
+        lineHeight: '1',
+        pointerEvents: 'auto' // Explicitly set pointer-events
+    });
+    
+    // Add hover effects
+    closeButton.onmouseover = function() {
+        this.style.backgroundColor = '#e74c3c';
+        this.style.transform = 'scale(1.1)';
+        this.style.boxShadow = '0 0 15px rgba(231, 76, 60, 0.9)';
+    };
+    
+    closeButton.onmouseout = function() {
+        this.style.backgroundColor = '#444';
+        this.style.transform = 'scale(1)';
+        this.style.boxShadow = '0 0 10px rgba(0,0,0,0.5)';
+    };
+    
+    // Add onclick handler
+    closeButton.onclick = function(event) {
+        event.preventDefault();
+        event.stopPropagation();
+        event.stopImmediatePropagation();
+        console.log('Standalone close button clicked');
+        lookup_hide();
+        return false;
+    };
+    
+    // Append to lookup container header
+    const lookupHeader = lookupContainer.querySelector('.lookup_header');
+    if (lookupHeader) {
+        lookupHeader.appendChild(closeButton);
+    } else {
+        lookupContainer.appendChild(closeButton);
+    }
+    
+    return closeButton;
+}
+
+// Add the missing lookup_init function
+const lookup_init = () => {
+    window.name_list_func['lookup_init'] = lookup_init;
+    
+    diag_log('=== LOOKUP INIT START ===');
+    
+    try {
+        // Check if lookup container already exists
+        let lookup_container = document.querySelector('.lookup_container');
+        
+        // If it doesn't exist, create it
+        if (!lookup_container) {
+            diag_log('Creating new lookup container...');
+            
+            // Create lookup container
+            lookup_container = document.createElement('div');
+            lookup_container.className = 'lookup_container';
+            
+            // Create lookup window
+            const lookup_window = document.createElement('div');
+            lookup_window.className = 'lookup_window';
+            lookup_container.appendChild(lookup_window);
+            
+            // Create lookup header
+            const lookup_header = document.createElement('div');
+            lookup_header.className = 'lookup_header';
+            lookup_window.appendChild(lookup_header);
+            
+            // Create lookup title
+            const lookup_title = document.createElement('div');
+            lookup_title.className = 'lookup_title';
+            lookup_title.innerHTML = 'Code snippets for: <span id="lookup_selected_name"></span>';
+            lookup_header.appendChild(lookup_title);
+            
+            // Create lookup close button
+            const lookup_close = document.createElement('div');
+            lookup_close.className = 'lookup_close';
+            lookup_close.textContent = '×';
+            lookup_close.title = 'Close';
+            lookup_close.onclick = function(event) {
+                event.preventDefault();
+                event.stopPropagation();
+                lookup_hide();
+                return false;
+            };
+            lookup_header.appendChild(lookup_close);
+            
+            // Create lookup content
+            const lookup_content = document.createElement('div');
+            lookup_content.className = 'lookup_content';
+            lookup_window.appendChild(lookup_content);
+            
+            // Create lookup result textarea
+            const lookup_result = document.createElement('textarea');
+            lookup_result.id = 'lookup_result';
+            lookup_result.readOnly = true;
+            lookup_content.appendChild(lookup_result);
+            
+            // Append to the right column instead of document body
+            const rightColumn = document.querySelector('.right_column');
+            if (rightColumn) {
+                rightColumn.appendChild(lookup_container);
+                diag_log('Lookup container created and attached to right column');
+            } else {
+                document.body.appendChild(lookup_container);
+                diag_log('Right column not found, lookup container attached to document body');
+            }
+            
+            // Initialize lookup state
+            window.lookup_state = {
+                active_name: null,
+                snippets: [],
+                visible: false
+            };
+            
+            diag_log('=== LOOKUP INIT COMPLETE ===');
+            return true;
+        } else {
+            diag_log('Lookup container already exists');
+        }
+        
+        // Initialize lookup state
+        window.lookup_state = {
+            active_name: null,
+            snippets: [],
+            visible: false
+        };
+        
+        diag_log('=== LOOKUP INIT COMPLETE ===');
+        return true;
+    } catch (error) {
+        diag_log('Error in lookup_init:', error);
+        console.error('Error initializing lookup:', error);
+        return false;
+    }
+};
+
+// Update the lookup_show function to use standalone close button
+const lookup_show = (name_string) => {
+    window.name_list_func['lookup_show'] = lookup_show;
+    
+    console.log('lookup_show called for:', name_string);
+    
+    try {
+        // Get lookup elements
+        const lookup_container = document.querySelector('.lookup_container');
+        const lookup_result = document.getElementById('lookup_result');
+        const placeholder_panel = document.getElementById('placeholder_panel');
+        const selected_name_element = document.getElementById('lookup_selected_name');
+        
+        // Check if lookup elements exist
+        if (!lookup_container || !lookup_result) {
+            console.error('Required lookup elements missing!');
+            return;
+        }
+        
+        // Update state
+        window.lookup_state.active_name = name_string;
+        window.lookup_state.visible = true;
+        
+        // Set the selected name in the header
+        if (selected_name_element) {
+            selected_name_element.textContent = name_string;
+        }
+        
+        // Show the loading message in the result field
+        if (lookup_result) {
+            lookup_result.value = `Loading code snippets for "${name_string}"...\n`;
+        }
+        
+        // Hide placeholder and show lookup
+        if (placeholder_panel) {
+            placeholder_panel.classList.add('hidden');
+            placeholder_panel.style.display = 'none';
+        }
+        
+        // Make the lookup container visible
+        if (lookup_container) {
+            lookup_container.classList.add('visible');
+            lookup_container.style.display = 'flex';
+        }
+        
+        // Create the standalone close button
+        createStandaloneCloseButton();
+        
+        // Load snippets
+        lookup_snippets_load(name_string).catch(error => {
+            console.error('Error loading snippets:', error);
+        });
+    } catch (error) {
+        console.error('Error in lookup_show:', error);
+    }
+};
+
+// Update the lookup_hide function to also hide the standalone close button
+const lookup_hide = () => {
+    window.name_list_func['lookup_hide'] = lookup_hide;
+    
+    console.log('lookup_hide called');
+    
+    try {
+        // Update state
+        window.lookup_state.active_name = null;
+        window.lookup_state.visible = false;
+        window.lookup_state.snippets = [];
+        
+        // Get elements
+        const lookup_container = document.querySelector('.lookup_container');
+        const lookup_result = document.getElementById('lookup_result');
+        const placeholder_panel = document.getElementById('placeholder_panel');
+        const selected_name_element = document.getElementById('lookup_selected_name');
+        
+        // Hide the standalone close button
+        const standalone_close = document.getElementById('standalone_close_button');
+        if (standalone_close) {
+            standalone_close.style.display = 'none';
+        }
+        
+        // Hide the lookup container
+        if (lookup_container) {
+            lookup_container.classList.remove('visible');
+            lookup_container.style.display = 'none';
+        }
+        
+        // Clear the result and selected name
+        if (lookup_result) {
+            lookup_result.value = '';
+        }
+        
+        if (selected_name_element) {
+            selected_name_element.textContent = '';
+        }
+        
+        // Show the placeholder panel
+        if (placeholder_panel) {
+            placeholder_panel.classList.remove('hidden');
+            placeholder_panel.style.display = 'flex';
+        }
+    } catch (error) {
+        console.error('Error in lookup_hide:', error);
+    }
+};
+
+// Add the missing lookup_snippets functions
+const lookup_snippets_load = async (name_string) => {
+    window.name_list_func['lookup_snippets_load'] = lookup_snippets_load;
+    
+    diag_log('Loading snippets for:', name_string);
+    
+    try {
+        // For now, generate some dummy snippets since we don't have a real backend
+        const snippets = lookup_snippets_extract(name_string);
+        
+        // Update state
+        window.lookup_state.snippets = snippets;
+        
+        // Render the snippets
+        lookup_snippets_render(snippets);
+        
+        return snippets;
+    } catch (error) {
+        console.error('Error loading snippets:', error);
+        
+        // Show error in the result field
+        const lookup_result = document.getElementById('lookup_result');
+        if (lookup_result) {
+            lookup_result.value = `Error loading snippets: ${error.message}`;
+        }
+        
+        return [];
+    }
+};
+
+const lookup_snippets_extract = (name_string) => {
+    window.name_list_func['lookup_snippets_extract'] = lookup_snippets_extract;
+    
+    // Generate some dummy snippets for demonstration
+    const snippets = [];
+    const file_options = ['src/app.js', 'src/styles.css', 'index.html'];
+    
+    // Check if the name exists in the code and generate appropriate snippets
+    if (Object.keys(window.name_list_func).includes(name_string)) {
+        snippets.push({
+            file: 'src/app.js',
+            line: Math.floor(Math.random() * 1000) + 1,
+            content: `const ${name_string} = () => {\n    window.name_list_func['${name_string}'] = ${name_string};\n    \n    // Function implementation...\n};`
+        });
+    } else if (window.name_list_class && window.name_list_class.includes(name_string)) {
+        snippets.push({
+            file: 'src/styles.css',
+            line: Math.floor(Math.random() * 500) + 1,
+            content: `.${name_string} {\n    display: flex;\n    color: #61dafb;\n    background-color: #282c34;\n}`
+        });
+    } else {
+        // Generic snippet
+        snippets.push({
+            file: file_options[Math.floor(Math.random() * file_options.length)],
+            line: Math.floor(Math.random() * 300) + 1,
+            content: `// Reference to ${name_string} found here\nconst example = ${name_string};`
+        });
+    }
+    
+    return snippets;
+};
+
+const lookup_snippets_render = (snippets) => {
+    window.name_list_func['lookup_snippets_render'] = lookup_snippets_render;
+    
+    const lookup_result = document.getElementById('lookup_result');
+    if (!lookup_result) return;
+    
+    if (!snippets || snippets.length === 0) {
+        lookup_result.value = 'No snippets found.';
+        return;
+    }
+    
+    let result_text = '';
+    
+    snippets.forEach((snippet, index) => {
+        if (index > 0) {
+            result_text += '\n\n---------------------------------------------------\n\n';
+        }
+        
+        // Format file and line information more neatly
+        result_text += `File: ${snippet.file}\n`;
+        result_text += `Line: ${snippet.line}\n`;
+        result_text += '-------------------\n';
+        result_text += snippet.content;
+    });
+    
+    lookup_result.value = result_text;
+    
+    // Update the lookup window title to make code name more prominent
+    const selected_name_element = document.getElementById('lookup_selected_name');
+    if (selected_name_element) {
+        const name_string = window.lookup_state.active_name;
+        selected_name_element.textContent = name_string;
+        selected_name_element.style.fontWeight = 'bold';
+        selected_name_element.style.color = '#61dafb';
+    }
+};
+
+// Add name type determination function
+const name_type_determine = (name_string) => {
+    window.name_list_func['name_type_determine'] = name_type_determine;
+    
+    if (Object.keys(window.name_list_func).includes(name_string)) {
+        return 'function';
+    } else if (window.name_list_class && window.name_list_class.includes(name_string)) {
+        return 'class';
+    } else if (window.name_list_param && window.name_list_param.includes(name_string)) {
+        return 'parameter';
+    } else if (window.name_list_const && window.name_list_const.includes(name_string)) {
+        return 'constant';
+    } else if (window.name_list_event && window.name_list_event.includes(name_string)) {
+        return 'event';
+    } else if (window.name_list_propt && window.name_list_propt.includes(name_string)) {
+        return 'property';
+    } else if (window.name_list_file && window.name_list_file.includes(name_string)) {
+        return 'file';
+    } else if (window.name_list_window && window.name_list_window.includes(name_string)) {
+        return 'window';
+    } else {
+        return 'variable';
+    }
+};
+
+// Add name terms split function
+const name_terms_split = (name_string, term_previous_list) => {
+    window.name_list_func['name_terms_split'] = name_terms_split;
+    
+    // Special handling for file paths with slashes
+    if (name_string.includes('/')) {
+        const parts = name_string.split('/').filter(Boolean);
+        return parts.map((part, index) => ({
+            text: part,
+            color: index === parts.length - 1 ? 'white' : 'gray'
+        }));
+    }
+    
+    // Split by underscores
+    const terms = name_string.split('_');
+    const term_list_same_is = term_list_compare(terms, term_previous_list);
+    
+    return terms.map((term, index) => ({
+        text: term,
+        color: term_list_same_is[index] ? 'gray' : 'white'
+    }));
+};
+
+const name_list_dom_render = (name_string, term_previous_list) => {
+    window.name_list_func['name_list_dom_render'] = name_list_dom_render;
+    
+    // Create name element
+    const name_element = dom_element_create('div');
+    dom_element_class_add(name_element, 'name');
+    
+    // Get the type of name
+    const name_type = name_type_determine(name_string);
+    dom_element_class_add(name_element, `name_${name_type}`);
+    
+    // Create term container
+    const term_container = dom_element_create('div');
+    dom_element_class_add(term_container, 'term_container');
+    
+    // Split name into terms
+    const term_list = name_terms_split(name_string, term_previous_list);
+    
+    // Add terms to container
+    term_list.forEach((term, i) => {
+        const term_element = dom_element_create('span');
+        dom_element_class_add(term_element, 'term');
+        
+        // Add appropriate classes based on term color
+        if (term.color === 'white') {
+            dom_element_class_add(term_element, 'term_white');
+        } else {
+            dom_element_class_add(term_element, 'term_gray');
+        }
+        
+        dom_element_text_set(term_element, term.text);
+        dom_element_append(term_container, term_element);
+        
+        // Add separator if not last term
+        if (i < term_list.length - 1) {
+            const separator = dom_element_create('span');
+            dom_element_class_add(separator, 'separator');
+            
+            // Add appropriate classes based on term color
+            if (term.color === 'white') {
+                dom_element_class_add(separator, 'separator_white');
+            } else {
+                dom_element_class_add(separator, 'separator_gray');
+            }
+            
+            dom_element_text_set(separator, '_');
+            dom_element_append(term_container, separator);
+        }
+    });
+    
+    dom_element_append(name_element, term_container);
+    
+    // Enhanced click handler with lookup and detailed debug logging
+    name_element.onclick = function(event) {
+        // Check if the click is on the root open button
+        if (event.target && event.target.classList && 
+            event.target.classList.contains('name_root_open')) {
+            // If clicking on the button, don't process the name click
+            return;
+        }
+        
+        debug('CLICK', 'Name element clicked:', name_string);
+        console.log('Direct onclick triggered for:', name_string);
+        
+        // Prevent default behavior and event propagation
+        event.preventDefault();
+        event.stopPropagation();
+        
+        // Add copy animation class
+        this.classList.add('name_copied');
+        
+        // Copy to clipboard
+        try {
+            navigator.clipboard.writeText(name_string);
+            console.log('Copied to clipboard:', name_string);
+        } catch (error) {
+            console.error('Could not copy to clipboard:', error);
+        }
+        
+        // Call lookup_show to display lookup for this name
+        debug('CLICK', 'Calling lookup_show for:', name_string);
+        lookup_show(name_string);
+        
+        // Remove animation class after timeout
+        setTimeout(() => {
+            this.classList.remove('name_copied');
+        }, 1000);
+        
+        return false; // Prevent default and bubbling
+    };
+    
+    return { name_element, term_list };
+};
+
+// Add the missing showError function
+const showError = (error) => {
+    const index_element = document.getElementById('index');
+    if (index_element) {
+        index_element.innerHTML = `
+            <div class="error">
+                <h3>Error Initializing Application</h3>
+                <p>${error.message}</p>
+                <pre>${error.stack || 'No stack trace available'}</pre>
+            </div>
+        `;
+    }
+};
+
+// Add the missing name_list_const_set function
+const name_list_const_set = () => {
+    window.name_list_func['name_list_const_set'] = name_list_const_set;
+    
+    // Clear existing lists
+    window.name_list_func = {};
+    window.name_list_var = {};
+    window.name_list_class = [];
+    window.name_list_param = [];
+    window.name_list_const = [];
+    window.name_list_event = [];
+    window.name_list_propt = [];
+    window.name_list_file = [];
+    window.name_list_window = [];
+    
+    // Store function names in the function list object
+    nameLists.function_names.forEach(name => {
+        window.name_list_func[name] = name;
+    });
+    
+    // Store variable names
+    nameLists.variable_names.forEach(name => {
+        window.name_list_var[name] = name;
+    });
+    
+    // Store other name types
+    window.name_list_class = [...nameLists.dom_class_names];
+    window.name_list_param = [...nameLists.parameter_names];
+    window.name_list_const = [...nameLists.constant_names];
+    window.name_list_event = [...nameLists.event_names];
+    window.name_list_propt = [...nameLists.property_names];
+    window.name_list_file = [...nameLists.file_names];
+    window.name_list_window = [...nameLists.store_names];
+    
+    // Combine all names into a single list
+    const name_type_list_set = [
+        ...nameLists.function_names,
+        ...nameLists.variable_names,
+        ...nameLists.dom_class_names,
+        ...nameLists.parameter_names,
+        ...nameLists.constant_names,
+        ...nameLists.event_names,
+        ...nameLists.property_names,
+        ...nameLists.file_names,
+        ...nameLists.store_names
+    ];
+    
+    return name_type_list_set;
+};
+
+// Array functions
+const array_sort_alphabetically = (array_input) => {
+    window.name_list_func['array_sort_alphabetically'] = array_sort_alphabetically;
+    return [...array_input].sort((a, b) => {
+        const a_lower = String(a).toLowerCase();
+        const b_lower = String(b).toLowerCase();
+        return a_lower.localeCompare(b_lower);
+    });
+};
+
+// DOM functions
+const dom_element_append = (parent_element, child_element) => {
+    window.name_list_func['dom_element_append'] = dom_element_append;
+    parent_element.appendChild(child_element);
+    return parent_element;
+};
+
+const dom_element_class_add = (target_element, class_name) => {
+    window.name_list_func['dom_element_class_add'] = dom_element_class_add;
+    target_element.classList.add(class_name);
+    return target_element;
+};
+
+const dom_element_create = (element_tag) => {
+    window.name_list_func['dom_element_create'] = dom_element_create;
+    return document.createElement(element_tag);
+};
+
+const dom_element_text_set = (target_element, text_content) => {
+    window.name_list_func['dom_element_text_set'] = dom_element_text_set;
+    target_element.textContent = text_content;
+    return target_element;
+};
+
+// Filter functions
+const filter_name_apply = () => {
+    window.name_list_func['filter_name_apply'] = filter_name_apply;
+    
+    // Get the index element
+    const index_element = document.getElementById('index');
+    if (!index_element) {
+        return;
+    }
+    
+    // Clear the index
+    index_element.innerHTML = '';
+    
+    // Get the filtered name list
+    const name_list = name_list_order_get();
+    
+    if (name_list.length === 0) {
+        return;
+    }
+    
+    const filtered_name_list = name_list.filter(name_filter_visible_is);
+    
+    if (filtered_name_list.length === 0) {
+        return;
+    }
+    
+    // Group names by root term
+    const root_group_map = {};
+    filtered_name_list.forEach(name_string => {
+        const root_name = root_extract(name_string);
+        if (!root_group_map[root_name]) {
+            root_group_map[root_name] = [];
+        }
+        root_group_map[root_name].push(name_string);
+    });
+    
+    // Render each root term group
+    Object.keys(root_group_map).sort((a, b) => {
+        return a.toLowerCase().localeCompare(b.toLowerCase());
+    }).forEach(root_name => {
+        const names_in_group = root_group_map[root_name];
+        const group_element = root_group_create(root_name, names_in_group, index_element);
+    });
+};
+
+// Add name filter visibility function first
+const name_filter_visible_is = (name_string) => {
+    window.name_list_func['name_filter_visible_is'] = name_filter_visible_is;
+    
+    const { func_on, var_on, class_on, param_on, const_on, event_on, 
+            propt_on, file_on, window_on, search_query } = window.filter_on_list;
+    
+    // Apply type filters
+    const type = name_type_determine(name_string);
+    
+    if (type === 'function' && !func_on) return false;
+    if (type === 'variable' && !var_on) return false;
+    if (type === 'class' && !class_on) return false;
+    if (type === 'parameter' && !param_on) return false;
+    if (type === 'constant' && !const_on) return false;
+    if (type === 'event' && !event_on) return false;
+    if (type === 'property' && !propt_on) return false;
+    if (type === 'file' && !file_on) return false;
+    if (type === 'window' && !window_on) return false;
+    
+    // Apply search filter
+    if (search_query) {
+        const search_lower = search_query.toLowerCase();
+        if (!search_matches(name_string, search_lower)) {
+            return false;
+        }
+    }
+    
+    return true;
+};
+
+// Add missing filter event handler functions
+const filter_type_function_event_add = (button_element) => {
+    window.name_list_func['filter_type_function_event_add'] = filter_type_function_event_add;
+    
+    button_element.addEventListener('click', () => {
+        filter_state_toggle(button_element, 'func_on');
+        filter_name_apply();
+    });
+    
+    // Add double-click handler for exclusive filtering
+    button_element.addEventListener('dblclick', () => {
+        filter_exclusive_set('func_on');
+        filter_name_apply();
+    });
+};
+
+const filter_type_variable_event_add = (button_element) => {
+    window.name_list_func['filter_type_variable_event_add'] = filter_type_variable_event_add;
+    
+    button_element.addEventListener('click', () => {
+        filter_state_toggle(button_element, 'var_on');
+        filter_name_apply();
+    });
+    
+    // Add double-click handler for exclusive filtering
+    button_element.addEventListener('dblclick', () => {
+        filter_exclusive_set('var_on');
+        filter_name_apply();
+    });
+};
+
+const filter_type_class_event_add = (button_element) => {
+    window.name_list_func['filter_type_class_event_add'] = filter_type_class_event_add;
+    
+    button_element.addEventListener('click', () => {
+        filter_state_toggle(button_element, 'class_on');
+        filter_name_apply();
+    });
+    
+    // Add double-click handler for exclusive filtering
+    button_element.addEventListener('dblclick', () => {
+        filter_exclusive_set('class_on');
+        filter_name_apply();
+    });
+};
+
+const filter_type_event_add = (button_element, type) => {
+    window.name_list_func['filter_type_event_add'] = filter_type_event_add;
+    
+    let filter_prop = 'var_on'; // Default
+    
+    if (type === 'parameter') filter_prop = 'param_on';
+    else if (type === 'constant') filter_prop = 'const_on';
+    else if (type === 'event') filter_prop = 'event_on';
+    else if (type === 'property') filter_prop = 'propt_on';
+    else if (type === 'file') filter_prop = 'file_on';
+    else if (type === 'window') filter_prop = 'window_on';
+    
+    button_element.addEventListener('click', () => {
+        filter_state_toggle(button_element, filter_prop);
+        filter_name_apply();
+    });
+    
+    // Add double-click handler for exclusive filtering
+    button_element.addEventListener('dblclick', () => {
+        filter_exclusive_set(filter_prop);
+        filter_name_apply();
+    });
+};
+
+const filter_state_toggle = (button_element, filter_type) => {
+    window.name_list_func['filter_state_toggle'] = filter_state_toggle;
+    
+    // Toggle filter state
+    window.filter_on_list[filter_type] = !window.filter_on_list[filter_type];
+    
+    // Update button appearance
+    button_element.classList.toggle('filter_active', window.filter_on_list[filter_type]);
+};
+
+const filter_all_reset = () => {
+    window.name_list_func['filter_all_reset'] = filter_all_reset;
+    
+    // Reset all filters to true
+    window.filter_on_list.func_on = true;
+    window.filter_on_list.var_on = true;
+    window.filter_on_list.class_on = true;
+    window.filter_on_list.param_on = true;
+    window.filter_on_list.const_on = true;
+    window.filter_on_list.event_on = true;
+    window.filter_on_list.propt_on = true;
+    window.filter_on_list.file_on = true;
+    window.filter_on_list.window_on = true;
+    window.filter_on_list.search_query = '';
+    
+    // Reset search input if it exists
+    const search_input = document.getElementById('name_search_input');
+    if (search_input) {
+        search_input.value = '';
+    }
+    
+    // Update button appearance
+    const filter_buttons = document.querySelectorAll('.filter');
+    filter_buttons.forEach(button => {
+        button.classList.add('filter_active');
+    });
+    
+    // Clear search results state
+    window.search_root_match = {};
+    window.search_root_previous_state = {};
+    
+    // Close all expanded root groups
+    root_close_all();
+    
+    // Update the root toggle button to show collapsed state
+    const root_toggle_all_element = document.getElementById('root_toggle_all');
+    if (root_toggle_all_element) {
+        root_toggle_all_element.textContent = '▶';
+    }
+    
+    // Apply filters immediately
+    filter_name_apply();
+};
+
+// Add the filter_exclusive_set function
+const filter_exclusive_set = (active_filter) => {
+    window.name_list_func['filter_exclusive_set'] = filter_exclusive_set;
+    
+    // Turn off all filters
+    window.filter_on_list.func_on = false;
+    window.filter_on_list.var_on = false;
+    window.filter_on_list.class_on = false;
+    window.filter_on_list.param_on = false;
+    window.filter_on_list.const_on = false;
+    window.filter_on_list.event_on = false;
+    window.filter_on_list.propt_on = false;
+    window.filter_on_list.file_on = false;
+    window.filter_on_list.window_on = false;
+    
+    // Turn on only the selected filter
+    window.filter_on_list[active_filter] = true;
+    
+    // Update button appearances
+    const filter_buttons = document.querySelectorAll('.filter');
+    filter_buttons.forEach(button => {
+        const id = button.id;
+        let filter_prop = '';
+        
+        if (id === 'filter_function') filter_prop = 'func_on';
+        else if (id === 'filter_variable') filter_prop = 'var_on';
+        else if (id === 'filter_class') filter_prop = 'class_on';
+        else if (id === 'filter_parameter') filter_prop = 'param_on';
+        else if (id === 'filter_constant') filter_prop = 'const_on';
+        else if (id === 'filter_event') filter_prop = 'event_on';
+        else if (id === 'filter_property') filter_prop = 'propt_on';
+        else if (id === 'filter_file') filter_prop = 'file_on';
+        else if (id === 'filter_window') filter_prop = 'window_on';
+        
+        button.classList.toggle('filter_active', window.filter_on_list[filter_prop]);
+    });
+    
+    log('APP.FILTER', 'Set exclusive filter:', active_filter);
 };

@@ -3,37 +3,158 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Function Name Index</title>
+    <title>Codename Index</title>
     <link rel="stylesheet" href="src/styles.css">
+    <script>
+        // HTML head loaded diagnostic
+        console.log('HTML head loaded');
+        
+        // Body start diagnostic function
+        function logBodyStart() {
+            console.log(' === BODY START DIAGNOSTIC ===');
+            console.log(' Body start time: ' + new Date().toISOString());
+            console.log(' Document readyState at body start: ' + document.readyState);
+            console.log(' Scripts at body start: ' + document.scripts.length);
+            console.log(' === END BODY START ===');
+        }
+        
+        // Script loading diagnostic function
+        function logScriptLoading() {
+            console.log(' === SCRIPT LOADING DIAGNOSTIC ===');
+            console.log(' About to load app.js');
+            console.log(' Current document readyState: ' + document.readyState);
+            console.log(' Current script count: ' + document.scripts.length);
+            console.log(' === END SCRIPT LOADING ===');
+        }
+        
+        // App script loading diagnostic function
+        function logAppScriptLoading() {
+            console.log(' === APP SCRIPT LOADING ===');
+            console.log(' Creating script element for: src/app.js');
+            console.log(' Loading script from: src/app.js?v=' + Math.random());
+            console.log(' Script element added to document');
+            console.log(' === END APP SCRIPT LOADING ===');
+        }
+    </script>
 </head>
-<body>
+<body onload="logBodyStart()">
     <div class="app_container">
-        <h1 class="app_title">codename index</h1>
-        <div class="index_container">
-            <div class="filter_container">
-                <div class="filter_group">
-                    <div class="filters_row">
-                        <div class="search_container">
-                            <input type="text" id="name_search_input" class="name_search_input" placeholder="Search names..." title="Filter names containing this text">
-                            <button id="name_search_clear" class="name_search_clear" title="Clear search">×</button>
+        <header class="app_title">
+            <h1>codename index</h1>
+        </header>
+        
+        <div class="app_content">
+            <div class="main_container">
+                <div class="left_column">
+                    <div class="filter_container">
+                        <div class="filter_group">
+                            <div class="filter_group_title">Filter by Type</div>
+                            <div class="filter_input">
+                                <input type="text" id="name_search_input" placeholder="Search names...">
+                                <button id="name_search_clear" class="filter_action">✕</button>
+                                <button id="name_search_submit" class="filter_action">►</button>
+                            </div>
+                            <div class="filter_actions">
+                                <button id="filter_reset_all" class="filter_action">Reset All</button>
+                                <button id="root_toggle_all" class="filter_action">▶</button>
+                            </div>
+                            <div class="filter_buttons">
+                                <button id="filter_function" class="filter filter_active">Function</button>
+                                <button id="filter_variable" class="filter filter_active">Variable</button>
+                                <button id="filter_class" class="filter filter_active">Class</button>
+                                <button id="filter_parameter" class="filter filter_active">Parameter</button>
+                                <button id="filter_constant" class="filter filter_active">Constant</button>
+                                <button id="filter_event" class="filter filter_active">Event</button>
+                                <button id="filter_property" class="filter filter_active">Property</button>
+                                <button id="filter_file" class="filter filter_active">File</button>
+                                <button id="filter_window" class="filter filter_active">Window</button>
+                            </div>
                         </div>
-                        <button id="root_toggle_all" class="filter filter_action" title="Open all roots">▶</button>
-                        <button id="filter_function" class="filter filter_active" title="Click to toggle. Double-click to select only this filter.">Functions</button>
-                        <button id="filter_variable" class="filter filter_active" title="Click to toggle. Double-click to select only this filter.">Variables</button>
-                        <button id="filter_class" class="filter filter_active" title="Click to toggle. Double-click to select only this filter.">CSS</button>
-                        <button id="filter_parameter" class="filter filter_active" title="Click to toggle. Double-click to select only this filter.">Parameters</button>
-                        <button id="filter_constant" class="filter filter_active" title="Click to toggle. Double-click to select only this filter.">Constants</button>
-                        <button id="filter_event" class="filter filter_active" title="Click to toggle. Double-click to select only this filter.">Events</button>
-                        <button id="filter_property" class="filter">Property</button>
-                        <button id="filter_file" class="filter">File</button>
-                        <button id="filter_window" class="filter">Window</button>
-                        <button id="filter_reset_all" class="filter filter_reset" title="Turn on all filters">X</button>
+                    </div>
+                    
+                    <div class="index_container">
+                        <div id="index" class="index">
+                            <!-- Names will be inserted here by JavaScript -->
+                        </div>
                     </div>
                 </div>
+                
+                <div class="right_column">
+                    <div id="placeholder_panel" class="placeholder_panel">
+                        <div class="placeholder_content">
+                            <div class="placeholder_icon">👆</div>
+                            <div class="placeholder_text">Click on a name to view details</div>
+                        </div>
+                    </div>
+                    
+                    <!-- Lookup container will be created by JavaScript -->
+                </div>
             </div>
-            <ul id="index" class="index"></ul>
         </div>
     </div>
-    <script src="src/app.js"></script>
+    
+    <script>
+        document.addEventListener('DOMContentLoaded', function() {
+            console.log('DOMContentLoaded event fired');
+            console.log('Scripts found:', document.scripts.length);
+            
+            // Log all scripts for debugging
+            for (let i = 0; i < document.scripts.length; i++) {
+                const script = document.scripts[i];
+                console.log('Script ' + i + ':', script);
+            }
+            
+            // Log HTML structure
+            console.log('=== HTML STRUCTURE DIAGNOSTIC ===');
+            console.log('Document URL:', document.URL);
+            console.log('Document baseURI:', document.baseURI);
+            console.log('Document charset:', document.charset);
+            console.log('Document contentType:', document.contentType);
+            console.log('Document doctype:', document.doctype);
+            console.log('Document readyState:', document.readyState);
+            console.log('Document scripts:', document.scripts.length);
+            console.log('Document stylesheets:', document.styleSheets.length);
+            console.log('=== END HTML STRUCTURE ===');
+            
+            // Load app.js dynamically
+            logScriptLoading();
+            logAppScriptLoading();
+            
+            const script = document.createElement('script');
+            script.src = 'src/app.js?v=' + Math.random();
+            
+            script.onload = function() {
+                console.log('Script loaded successfully:', script.src);
+                console.log('Script readyState:', script.readyState);
+                console.log('Document readyState:', document.readyState);
+                
+                try {
+                    console.log('Script initialized successfully');
+                    document.dispatchEvent(new Event('app-initialized'));
+                } catch (error) {
+                    console.error('Error initializing script:', error);
+                }
+            };
+            
+            script.onerror = function() {
+                console.error('Failed to load script:', script.src);
+            };
+            
+            document.body.appendChild(script);
+            
+            // Additional code to check if app is initialized
+            setTimeout(function() {
+                console.log('Script loading complete and initialized');
+                
+                // Call app_init directly as a fallback
+                if (typeof app_init === 'function') {
+                    console.log('Calling app_init...');
+                    app_init();
+                } else {
+                    console.error('app_init is not defined after script load');
+                }
+            }, 500);
+        });
+    </script>
 </body>
 </html> 

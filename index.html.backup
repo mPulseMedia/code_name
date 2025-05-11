@@ -1,0 +1,220 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Code Name Index</title>
+    <link rel="stylesheet" href="src/styles.css">
+    <script>
+        // Add comprehensive error handling
+        window.onerror = function(msg, url, lineNo, columnNo, error) {
+            console.error('Global error:', {msg, url, lineNo, columnNo, error});
+            document.getElementById('index').innerHTML = `
+                <div class="error">
+                    <h3>Error Loading Application</h3>
+                    <p>${msg}</p>
+                    <p>Line: ${lineNo}, Column: ${columnNo}</p>
+                    <pre>${error ? error.stack : 'No stack trace'}</pre>
+                </div>
+            `;
+            return false;
+        };
+
+        // Add unhandled promise rejection handler
+        window.onunhandledrejection = function(event) {
+            console.error('Unhandled promise rejection:', event.reason);
+            document.getElementById('index').innerHTML = `
+                <div class="error">
+                    <h3>Unhandled Promise Rejection</h3>
+                    <pre>${event.reason}</pre>
+                </div>
+            `;
+        };
+
+        console.log('HTML head loaded');
+        window.addEventListener('DOMContentLoaded', () => {
+            console.log('DOMContentLoaded event fired');
+            // Log all script elements to verify loading
+            const scripts = document.getElementsByTagName('script');
+            console.log('Scripts found:', scripts.length);
+            Array.from(scripts).forEach((script, i) => {
+                console.log(`Script ${i}:`, {
+                    src: script.src,
+                    type: script.type,
+                    async: script.async,
+                    defer: script.defer,
+                    readyState: script.readyState,
+                    text: script.text ? script.text.substring(0, 100) + '...' : 'none'
+                });
+            });
+            
+            // Log HTML structure
+            console.log('=== HTML STRUCTURE DIAGNOSTIC ===');
+            console.log('Document URL:', document.URL);
+            console.log('Document baseURI:', document.baseURI);
+            console.log('Document charset:', document.characterSet);
+            console.log('Document contentType:', document.contentType);
+            console.log('Document doctype:', document.doctype ? document.doctype.name : 'none');
+            console.log('Document readyState:', document.readyState);
+            console.log('Document scripts:', document.scripts.length);
+            console.log('Document stylesheets:', document.styleSheets.length);
+            console.log('=== END HTML STRUCTURE ===');
+        });
+    </script>
+</head>
+<body>
+    <script>
+        console.log('=== BODY START DIAGNOSTIC ===');
+        console.log('Body start time:', new Date().toISOString());
+        console.log('Document readyState at body start:', document.readyState);
+        console.log('Scripts at body start:', document.scripts.length);
+        console.log('=== END BODY START ===');
+    </script>
+    
+    <div class="app_container">
+        <h1 class="app_title">codename index</h1>
+        <div class="app_content">
+            <div class="filter_container">
+                <div class="filter_group">
+                    <div class="filter_buttons">
+                        <div class="search_container">
+                            <input type="text" id="name_search_input" class="name_search_input" placeholder="Search names...">
+                            <button id="name_search_clear" class="name_search_clear" title="Clear search">×</button>
+                            <button id="root_toggle_all" class="filter_action" title="Expand/Collapse All">▶</button>
+                        </div>
+                        <button id="filter_function" class="filter filter_active" title="Click to toggle | Double-click to show only Functions">Function</button>
+                        <button id="filter_variable" class="filter filter_active" title="Click to toggle | Double-click to show only Variables">Variable</button>
+                        <button id="filter_class" class="filter filter_active" title="Click to toggle | Double-click to show only Classes">Class</button>
+                        <button id="filter_parameter" class="filter filter_active" title="Click to toggle | Double-click to show only Parameters">Parameter</button>
+                        <button id="filter_constant" class="filter filter_active" title="Click to toggle | Double-click to show only Constants">Constant</button>
+                        <button id="filter_event" class="filter filter_active" title="Click to toggle | Double-click to show only Events">Event</button>
+                        <button id="filter_property" class="filter filter_active" title="Click to toggle | Double-click to show only Properties">Property</button>
+                        <button id="filter_file" class="filter filter_active" title="Click to toggle | Double-click to show only Files">File</button>
+                        <button id="filter_window" class="filter filter_active" title="Click to toggle | Double-click to show only Window objects">Window</button>
+                        <button id="filter_reset_all" class="filter_action">Reset All</button>
+                    </div>
+                </div>
+                <div class="filter_actions">
+                </div>
+            </div>
+            
+            <div class="main_container">
+                <div class="left_column">
+                    <div class="index_container">
+                        <div id="index" class="index">
+                            <!-- Function and variable names will be rendered here -->
+                        </div>
+                    </div>
+                </div>
+                
+                <div class="right_column">
+                    <div id="placeholder_panel" class="placeholder_panel">
+                        Click on a name to view details
+                    </div>
+                    
+                    <div class="lookup_container">
+                        <div class="lookup_header">
+                            <div id="lookup_selected_name" class="lookup_selected_name"></div>
+                            <button class="lookup_close_button" title="Close lookup">×</button>
+                        </div>
+                        <textarea id="lookup_result" class="lookup_result" readonly></textarea>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <!-- Add script loading verification -->
+    <script>
+        console.log('=== SCRIPT LOADING DIAGNOSTIC ===');
+        console.log('About to load app.js');
+        console.log('Current document readyState:', document.readyState);
+        console.log('Current script count:', document.scripts.length);
+        window.addEventListener('error', (event) => {
+            console.error('Script loading error:', {
+                message: event.message,
+                filename: event.filename,
+                lineno: event.lineno,
+                colno: event.colno,
+                error: event.error
+            });
+        });
+        console.log('=== END SCRIPT LOADING ===');
+    </script>
+    
+    <!-- Load the app script -->
+    <script>
+        console.log('=== APP SCRIPT LOADING ===');
+        
+        // Function to load script and wait for it to be ready
+        const loadScript = (src) => {
+            return new Promise((resolve, reject) => {
+                console.log('Creating script element for:', src);
+                const script = document.createElement('script');
+                
+                // Set attributes for synchronous loading
+                script.async = false;
+                script.defer = false;
+                
+                // Add version to prevent caching
+                const versionedSrc = `${src}?v=${Math.random()}`;
+                console.log('Loading script from:', versionedSrc);
+                
+                // Handle load event
+                script.onload = () => {
+                    console.log('Script loaded successfully:', versionedSrc);
+                    console.log('Script readyState:', script.readyState);
+                    console.log('Document readyState:', document.readyState);
+                    
+                    // Wait a bit to ensure script is fully initialized
+                    setTimeout(() => {
+                        if (typeof window.name_list_func !== 'undefined') {
+                            console.log('Script initialized successfully');
+                            resolve();
+                        } else {
+                            console.error('Script loaded but not initialized');
+                            reject(new Error('Script not initialized'));
+                        }
+                    }, 100);
+                };
+                
+                // Handle error event
+                script.onerror = (error) => {
+                    console.error('Script failed to load:', versionedSrc, error);
+                    reject(error);
+                };
+                
+                // Set source and add to document
+                script.src = versionedSrc;
+                document.body.appendChild(script);
+                console.log('Script element added to document');
+            });
+        };
+        
+        // Try to load the script
+        loadScript('src/app.js')
+            .then(() => {
+                console.log('Script loading complete and initialized');
+                // Call app_init after script is ready
+                if (typeof app_init === 'function') {
+                    console.log('Calling app_init...');
+                    app_init();
+                } else {
+                    console.error('app_init not found after script load');
+                }
+            })
+            .catch((error) => {
+                console.error('Failed to load script:', error);
+                document.getElementById('index').innerHTML = `
+                    <div class="error">
+                        <h3>Error Loading Application</h3>
+                        <p>Failed to load app.js: ${error.message}</p>
+                        <p>Please ensure you are running this through a web server (http://) rather than directly from the filesystem (file://).</p>
+                    </div>
+                `;
+            });
+        
+        console.log('=== END APP SCRIPT LOADING ===');
+    </script>
+</body>
+</html> 
