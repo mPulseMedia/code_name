@@ -48,26 +48,29 @@
                 <div class="left_column">
                     <div class="filter_container">
                         <div class="filter_group">
-                            <div class="filter_group_title">Filter by Type</div>
-                            <div class="filter_input">
-                                <input type="text" id="name_search_input" placeholder="Search names...">
-                                <button id="name_search_clear" class="filter_action">✕</button>
-                                <button id="name_search_submit" class="filter_action">►</button>
+                            <div class="filter_top_row">
+                                <div class="search_controls">
+                                    <input type="text" id="name_search_input" placeholder="Search names...">
+                                    <button id="name_search_clear" class="filter_action">✕</button>
+                                    <button id="root_open_all" class="filter_action" title="Open All Root Groups">▶</button>
+                                </div>
+                                <div class="filter_buttons filter_buttons_inline">
+                                    <button id="filter_function" class="filter filter_active">Function</button>
+                                    <button id="filter_variable" class="filter filter_active">Variable</button>
+                                    <button id="filter_class" class="filter filter_active">Class</button>
+                                    <button id="filter_parameter" class="filter filter_active">Parameter</button>
+                                    <button id="filter_constant" class="filter filter_active">Constant</button>
+                                    <button id="filter_event" class="filter filter_active">Event</button>
+                                    <button id="filter_property" class="filter filter_active">Property</button>
+                                    <button id="filter_file" class="filter filter_active">File</button>
+                                    <button id="filter_window" class="filter filter_active">Window</button>
+                                </div>
+                                <div class="reset_controls">
+                                    <button id="filter_reset_all" class="filter_action">Reset All</button>
+                                </div>
                             </div>
-                            <div class="filter_actions">
-                                <button id="filter_reset_all" class="filter_action">Reset All</button>
-                                <button id="root_toggle_all" class="filter_action">▶</button>
-                            </div>
-                            <div class="filter_buttons">
-                                <button id="filter_function" class="filter filter_active">Function</button>
-                                <button id="filter_variable" class="filter filter_active">Variable</button>
-                                <button id="filter_class" class="filter filter_active">Class</button>
-                                <button id="filter_parameter" class="filter filter_active">Parameter</button>
-                                <button id="filter_constant" class="filter filter_active">Constant</button>
-                                <button id="filter_event" class="filter filter_active">Event</button>
-                                <button id="filter_property" class="filter filter_active">Property</button>
-                                <button id="filter_file" class="filter filter_active">File</button>
-                                <button id="filter_window" class="filter filter_active">Window</button>
+                            <div class="filter_buttons filter_buttons_wrap">
+                                <!-- Filter buttons will be moved here via CSS for smaller screens -->
                             </div>
                         </div>
                     </div>

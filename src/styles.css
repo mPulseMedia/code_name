@@ -149,8 +149,10 @@ body {
     border-left: 2px solid transparent;
 }
 .name * {
-    pointer-events:   none !important; /* Prevent children from handling events */
-    z-index: 1;
+    pointer-events: none; /* Allow the caret to capture events */
+}
+.name .root_term_caret {
+    pointer-events: auto;
 }
 .name:hover {
     background-color: rgba(97, 218, 251, 0.1);
@@ -308,843 +310,104 @@ body {
     box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
 }
 .filter_group {
-    display:          flex;
-    flex-direction:   column;
-    gap:              8px;
-}
-.filter_group_title {
-    margin:           0;
-    font-size:        14px;
-    color:            #61dafb;
-    text-align:       center;
-}
-.filter_tip {
-    margin:           5px 0 8px;
-    font-size:        12px;
-    color:            #999;
-    text-align:       center;
-    font-style:       italic;
-}
-.filter_buttons {
-    display:          flex;
-    flex-wrap:        wrap;
-    gap:              8px;
-    margin-top:       10px;
-}
-.filter_actions {
-    display:          flex;
-    justify-content:  center;
-    margin-top:       15px;
-}
-.search_container {
-    display:          flex;
-    justify-content:  center;
-    align-items:      center;
-    position:         relative;
-    width:            auto;
-    margin:           0;
-    margin-right:     10px;
-}
-.name_search_input {
-    padding:          6px 12px;
-    border-radius:    4px;
-    border:           none;
-    font-size:        14px;
-    background-color: #3a3a3a;
-    color:            #fff;
-    width:            auto;
-    min-width:        140px;
-    transition:       all 0.2s ease;
-}
-.name_search_input:focus {
-    outline:          none;
-    background-color: #4a4a4a;
-    box-shadow:       none;
-    border-color:     transparent;
-}
-.name_search_input::placeholder {
-    color:            #777;
-}
-.name_search_clear {
-    position:         absolute;
-    right:            10px;
-    top:              50%;
-    transform:        translateY(-50%);
-    background:       none;
-    border:           none;
-    color:            #777;
-    font-size:        18px;
-    cursor:           pointer;
-    display:          none;
-    padding:          0;
-    width:            20px;
-    height:           20px;
-    line-height:      1;
-    transition:       color 0.2s ease;
-}
-.name_search_clear:hover {
-    color:            #e74c3c;
-}
-.name_search_clear.visible {
-    display:          block;
-}
-.filter_action {
-    padding:          6px 12px;
-    border-radius:    4px;
-    border:           1px solid #555;
-    font-size:        15px;
-    cursor:           pointer;
-    transition:       all 0.2s ease;
-    background-color: #2a2a2a;
-    color:            #aaa;
-    line-height:      1;
-    min-width:        36px;
-    text-align:       center;
-}
-.filter_action:hover {
-    background-color: #333;
-    color:            #fff;
-    border-color:     #777;
-}
-.filter {
-    padding: 6px 12px;
-    border-radius: 4px;
-    border: 1px solid #444;
-    font-size: 14px;
-    cursor: pointer;
-    transition: all 0.2s ease;
-    background-color: #333;
-    color: #ccc;
-    position: relative;
-    transform: translateZ(0);
-    backface-visibility: hidden;
-}
-.filter:hover {
-    box-shadow: 0 0 5px rgba(255, 255, 255, 0.2);
-    transform: none;
-}
-.filter::after {
-    content: "";
-    position: absolute;
-    bottom: -2px;
-    left: 50%;
-    width: 0;
-    height: 2px;
-    background: #555;
-    transform: translateX(-50%);
-    transition: width 0.2s ease;
-}
-.filter_active::after {
-    background:       currentColor;
-    width:            100%;
-}
-#filter_function {
-    color:            #f7dd72;
-}
-#filter_variable {
-    color:            #ffffff;
-}
-#filter_class {
-    color:            #e28eff;
-}
-#filter_parameter {
-    color:            #61dafb;
-}
-#filter_constant {
-    color:            #52be80;
-}
-#filter_event {
-    color:            #e74c3c;
-}
-#filter_property {
-    color:            #f39c12;
-}
-#filter_file {
-    color:            #2ecc71;
-}
-#filter_reset_all {
-    color:            #cccccc;
-    background-color: rgba(102, 102, 102, 0.2);
-    border:           1px solid rgba(204, 204, 204, 0.5);
-    margin-left:      auto;
-}
-#filter_function.filter_active {
-    background-color: rgba(247, 221, 114, 0.2);
-    border:           1px solid #f7dd72;
-}
-#filter_variable.filter_active {
-    background-color: rgba(255, 255, 255, 0.2);
-    border:           1px solid #ffffff;
-}
-#filter_class.filter_active {
-    background-color: rgba(226, 142, 255, 0.2);
-    border:           1px solid #e28eff;
-}
-#filter_parameter.filter_active {
-    background-color: rgba(97, 218, 251, 0.2);
-    border:           1px solid #61dafb;
-}
-#filter_constant.filter_active {
-    background-color: rgba(82, 190, 128, 0.2);
-    border:           1px solid #52be80;
-}
-#filter_event.filter_active {
-    background-color: rgba(231, 76, 60, 0.2);
-    border:           1px solid #e74c3c;
-}
-#filter_property.filter_active {
-    background-color: rgba(243, 156, 18, 0.2);
-    border:           1px solid #f39c12;
-}
-#filter_file.filter_active {
-    background-color: rgba(46, 204, 113, 0.2);
-    border:           1px solid #2ecc71;
-}
-.name_hidden {
-    display:          none;
-}
-.filters_row {
-    display:          flex;
-    gap:              10px;
-    justify-content:  flex-start;
-    flex-wrap:        nowrap;
-    align-items:      center;
-    overflow-x:       auto;
-    padding-bottom:   10px;
-}
-
-@media (max-width: 1000px) {
-    .app_container {
-        max-width:    90%;
-    }
-    
-    .filters_row {
-        flex-wrap:    wrap;
-    }
-}
-
-/* Enhance filter hover states */
-#filter_function:hover {
-    background-color: rgba(247, 221, 114, 0.1);
-    border:           1px solid rgba(247, 221, 114, 0.7);
-}
-#filter_variable:hover {
-    background-color: rgba(255, 255, 255, 0.1);
-    border:           1px solid rgba(255, 255, 255, 0.7);
-}
-#filter_class:hover {
-    background-color: rgba(226, 142, 255, 0.1);
-    border:           1px solid rgba(226, 142, 255, 0.7);
-}
-#filter_parameter:hover {
-    background-color: rgba(97, 218, 251, 0.1);
-    border:           1px solid rgba(97, 218, 251, 0.7);
-}
-#filter_constant:hover {
-    background-color: rgba(82, 190, 128, 0.1);
-    border:           1px solid rgba(82, 190, 128, 0.7);
-}
-#filter_event:hover {
-    background-color: rgba(231, 76, 60, 0.1);
-    border:           1px solid rgba(231, 76, 60, 0.7);
-}
-#filter_reset_all:hover {
-    background-color: rgba(204, 204, 204, 0.1);
-    border:           1px solid rgba(204, 204, 204, 0.7);
-}
-#filter_reset_all.filter_active {
-    background-color: rgba(102, 102, 102, 0.4);
-    border:           1px solid rgba(204, 204, 204, 0.8);
-}
-
-/* Root group styling */
-.root_term_group {
-    position: relative;
-    margin-bottom: 0;
-    padding-left: 0;
-}
-
-/* Root header styling */
-.root_term_header {
-    display: flex;
-    align-items: center;
-    height: 30px;
-    min-height: 30px;
-    max-height: 30px;
-    padding: 0 8px 0 30px !important;
-    margin: 0;
-    font-family: monospace;
-    font-size: 14px;
-    cursor: pointer;
-    position: relative;
-    user-select: none;
-    background-color: transparent;
-    transform: translateZ(0);
-    backface-visibility: hidden;
-    border-radius: 4px;
-    box-sizing: border-box;
-    outline: 1px solid transparent;
-    transition: background-color 0.2s ease, outline 0.2s ease;
-}
-
-.root_term_header:hover {
-    background-color: rgba(97, 218, 251, 0.05);
-    outline: 1px solid rgba(97, 218, 251, 0.2);
-}
-
-/* Root header caret styling */
-.root_term_caret,
-.root_term_header .root_term_caret {
-    position: absolute;
-    left: 5px;
-    top: 50%;
-    transform: translateY(-50%);
-    color: #888;
-    font-size: 16px;
-    z-index: 10;
-    pointer-events: none;
-    width: 20px;
-    height: 20px;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-}
-
-.root_term_header:hover .root_term_caret {
-    color: #fff;
-}
-
-/* Hidden state for root header when expanded */
-.root_header_hidden {
-    display: none !important;
-    visibility: hidden;
-    position: absolute;
-    opacity: 0;
-    pointer-events: none;
-    height: 0;
-    overflow: hidden;
-}
-
-/* Root content styling */
-.root_term_content {
-    margin: 0;
-    padding: 0;
-    display: none;
-}
-
-.root_term_content.expanded {
-    display: block;
-    margin-top: 0;
-}
-
-/* Ensure the first item in expanded content replaces the header */
-.root_term_content.expanded > .name:first-child {
-    padding: 0 8px 0 30px !important;
-    position: relative;
-    height: 30px;
-    min-height: 30px;
-    max-height: 30px;
-    display: flex;
-    align-items: center;
-    margin-top: 0;
-}
-
-/* Remove old caret code and use the button instead */
-.root_term_content.expanded > .name:first-child::before {
-    content: none;
-}
-
-/* Ensure root item button is visible */
-.root_item .name_root_open {
-    display: flex;
-}
-
-/* Make the name elements' click areas work properly */
-.name {
-    cursor: pointer;
-    position: relative;
-    z-index: 1;
-}
-
-/* Improve the name_root_open button styling */
-.name_root_open {
-    position: absolute;
-    left: 5px;
-    top: 50%;
-    transform: translateY(-50%);
-    width: 22px;
-    height: 22px;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    font-size: 14px;
-    font-weight: bold;
-    color: #fff;
-    cursor: pointer;
-    z-index: 150;
-    background-color: rgba(50, 50, 50, 0.9);
-    border: none;
-    border-radius: 3px;
-    transition: background-color 0.2s ease, color 0.2s ease;
-    text-align: center;
-    line-height: 1;
-    box-shadow: none;
-    margin: 0;
-    padding: 0;
-    pointer-events: auto !important;
-    isolation: isolate;
-    outline: none;
-}
-
-.name_root_open:hover {
-    color: #61dafb;
-    background-color: rgba(60, 60, 60, 0.95);
-}
-
-.name_root_open:focus {
-    outline: none;
-    box-shadow: none;
-}
-
-/* Ensure the name_root_open buttons in the root header are visible */
-.root_term_header .name_root_open {
-    left: 5px;
-    opacity: 1;
-    visibility: visible;
-}
-
-/* Make sure the name element doesn't block the button */
-.name, .root_term_header {
-    position: relative;
-}
-
-/* Create a pseudo-element to intercept clicks for the toggle button area */
-.name::before, .root_term_header::before {
-    content: "";
-    position: absolute;
-    left: 0;
-    top: 0;
-    width: 30px; /* Width of the toggle button area */
-    height: 100%;
-    pointer-events: none; /* Allow clicks to pass through to the actual button */
-    z-index: 140;
-}
-
-/* Fix the lookup close button to ensure it doesn't interfere */
-#standalone_close_button {
-    z-index: 200;
-    position: absolute;
-    top: 5px;
-    right: 5px;
-    pointer-events: auto !important;
-}
-
-/* Ensure the lookup container and its children don't interfere with root buttons */
-.lookup_container * {
-    pointer-events: auto;
-}
-
-/* Root toggle all button styling */
-#root_toggle_all {
-    padding: 5px 10px;
-    font-size: 16px;
-    cursor: pointer;
-    background-color: #3a3a3a;
-    border: 1px solid #444;
-    border-radius: 4px;
-    color: #e0e0e0;
-    margin-right: 10px;
-}
-
-/* Custom styles for different term types */
-.root_term_function .root_term_text {
-    color: #f7dd72;
-}
-
-.root_term_variable .root_term_text {
-    color: #ffffff;
-}
-
-.root_term_class .root_term_text {
-    color: #e28eff;
-}
-
-.root_term_parameter .root_term_text {
-    color: #61dafb;
-}
-
-.root_term_constant .root_term_text {
-    color: #52be80;
-}
-
-.root_term_event .root_term_text {
-    color: #e74c3c;
-}
-
-.root_term_property .root_term_text {
-    color: #f39c12;
-}
-
-/* Additional styling for file paths */
-.name_file .term:last-child {
-    font-weight: normal;
-    opacity: 0.9;
-}
-
-/* Style for extension */
-.name_file .term:last-child:not(:first-child) {
-    font-style: italic;
-    opacity: 0.8;
-}
-
-/* Style for directory parts */
-.name_file .term:not(:last-child) {
-    font-weight: normal;
-}
-
-.name_window {
-    color: #9b59b6;
-}
-
-.name_window .term_white,
-.name_window .separator_white {
-    color: #9b59b6;
-}
-
-#filter_window {
-    background-color: transparent;
-    border: 1px solid #9b59b6;
-    color: #9b59b6;
-}
-
-#filter_window:hover {
-    background-color: rgba(155, 89, 182, 0.1);
-    border-color: #9b59b6;
-}
-
-#filter_window.filter_active {
-    background-color: rgba(155, 89, 182, 0.2);
-    border-color: #9b59b6;
-}
-
-#filter_window.filter_active:hover {
-    background-color: rgba(155, 89, 182, 0.3);
-    border-color: #9b59b6;
-}
-
-.root_term_store .root_term_text {
-    color: #9b59b6;
-}
-
-/* Main content layout for permanent two-column display */
-.app_content {
     display: flex;
     flex-direction: column;
     width: 100%;
-    height: calc(100vh - 120px);
-    margin-top: 20px;
-    overflow: hidden;
 }
-
-/* Create container for the two-column layout */
-.main_container {
-    display: flex;
-    flex-direction: row;
-    width: 100%;
-    height: 100%;
-    gap: 20px;
-    flex: 1;
-}
-
-/* Left column for filters and index */
-.left_column {
-    width: 50%;
-    display: flex;
-    flex-direction: column;
-    height: 100%;
-    background-color: #2d2d2d;
-    border-radius: 8px;
-    box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
-}
-
-/* Filter container inside left column */
-.filter_container {
-    flex-shrink: 0;
-    padding: 15px;
-    background-color: #2d2d2d;
-    border-bottom: 1px solid #444;
-    display: flex;
-    flex-direction: column;
-    gap: 10px;
-    width: 100%;
-}
-
-/* Index container inside left column */
-.index_container {
-    flex: 1;
-    overflow-y: auto;
-    padding: 10px 20px;
-    width: 100%;
-}
-
-/* Right column for lookup */
-.right_column {
-    width: 50%;
-    position: relative;
-    height: 100%;
-    background-color: #2d2d2d;
-    border-radius: 8px;
-    box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
-}
-
-/* Placeholder panel styling */
-.placeholder_panel {
-    position: absolute;
-    top: 0;
-    left: 0;
-    width: 100%;
-    height: 100%;
-    display: flex;
-    flex-direction: column;
-    justify-content: center;
-    align-items: center;
-    color: #888;
-    z-index: 1;
-    background-color: #2d2d2d;
-    transition: all 0.3s ease;
-}
-
-.placeholder_panel.hidden {
-    display: none;
-}
-
-.placeholder_icon {
-    font-size: 48px;
-    margin-bottom: 20px;
-    color: #61dafb;
-    animation: pulse 2s infinite;
-}
-
-.placeholder_text {
-    font-size: 18px;
-    text-align: center;
-    max-width: 80%;
-    color: #aaa;
-}
-
-@keyframes pulse {
-    0% { opacity: 0.6; transform: scale(1); }
-    50% { opacity: 1; transform: scale(1.1); }
-    100% { opacity: 0.6; transform: scale(1); }
-}
-
-/* Lookup container styling */
-.lookup_container {
-    position: absolute;
-    top: 0;
-    left: 0;
-    width: 100%;
-    height: 100%;
-    display: none;
-    flex-direction: column;
-    z-index: 2;
-    scrollbar-width: thin;
-    scrollbar-color: #444 transparent;
-}
-
-.lookup_container.visible {
-    display: flex;
-}
-
-/* Lookup header styling */
-.lookup_header {
-    display: flex;
-    justify-content: flex-start;
-    align-items: center;
-    padding: 15px 60px 15px 15px;
-    background-color: #333;
-    border-bottom: 1px solid #444;
-    position: relative;
-    z-index: 100;
-    min-height: 60px;
-}
-
-.lookup_title {
-    margin: 0;
-    font-size: 16px;
-    font-weight: bold;
-    color: #61dafb;
-}
-
-#lookup_selected_name {
-    font-weight: normal;
-    font-style: italic;
-    color: #e0e0e0;
-    overflow: hidden;
-    text-overflow: ellipsis;
-    white-space: nowrap;
-    max-width: calc(100% - 60px);
-    pointer-events: none;
-}
-
-.lookup_close_button {
-    position: absolute;
-    top: 5px;
-    right: 5px;
-    background: #444;
-    border: 2px solid #666;
-    font-size: 32px;
-    cursor: pointer;
-    width: 50px;
-    height: 50px;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    border-radius: 50%;
-    color: #e0e0e0;
-    z-index: 9999;
-    background-color: rgba(75, 75, 75, 0.9);
-    transition: all 0.2s ease;
-    padding: 0;
-    line-height: 1;
-    font-weight: bold;
-    pointer-events: auto !important;
-    text-align: center;
-    box-shadow: 0 0 10px rgba(0, 0, 0, 0.5);
-}
-
-.lookup_close_button:hover {
-    background-color: #e74c3c;
-    transform: scale(1.1);
-    box-shadow: 0 0 15px rgba(231, 76, 60, 0.9);
-}
-
-/* Style the lookup result textarea with custom scrollbar */
-.lookup_result {
-    flex: 1;
-    width: 100%;
-    height: calc(100% - 60px);
-    padding: 15px;
-    font-family: monospace;
-    font-size: 14px;
-    line-height: 1.5;
-    color: #e0e0e0;
-    background-color: #2d2d2d;
-    border: none;
-    border-top: 1px solid #444;
-    resize: none;
-    outline: none;
-    overflow-y: auto;
-    white-space: pre-wrap;
-    box-sizing: border-box;
-    margin: 0;
-    overflow-x: hidden;
-    tab-size: 4;
-    scrollbar-width: thin;
-    scrollbar-color: #444 transparent;
-    pointer-events: auto;
-    z-index: 1;
-}
-
-.lookup_result:focus {
-    outline: none;
-    border-color: #444;
-}
-
-/* Add selection highlight color */
-.lookup_result::selection {
-    background-color: rgba(97, 218, 251, 0.3);
-    color: #fff;
-}
-
-/* Fix search input dark theme */
-#name_search_input {
-    width: 200px;
-    padding: 5px 30px 5px 10px;
-    border: 1px solid #444;
-    border-radius: 4px;
-    font-size: 14px;
-    background-color: #3a3a3a;
-    color: #e0e0e0;
-}
-
-/* Root toggle button - dark theme */
-.root_toggle_button {
-    padding: 5px 10px;
-    font-size: 14px;
-    cursor: pointer;
-    background-color: #3a3a3a;
-    border: 1px solid #444;
-    border-radius: 4px;
-    color: #e0e0e0;
-}
-
-/* Fix filter top row styles */
 .filter_top_row {
     display: flex;
-    align-items: center;
     justify-content: space-between;
-    margin-bottom: 10px;
+    align-items: center;
+    width: 100%;
+    gap: 10px;
+    margin-bottom: 12px;
+    flex-wrap: wrap;
 }
-
-.filter_group_title {
-    margin: 0;
-    font-size: 14px;
-    color: #61dafb;
-    font-weight: bold;
-    text-shadow: 0 0 5px rgba(97, 218, 251, 0.5);
-}
-
-.search_container {
+.search_controls {
     display: flex;
     align-items: center;
-    position: relative;
-    margin-right: 10px;
+    min-width: 200px;
+    flex-grow: 0;
+    flex-shrink: 0;
+    gap: 5px;
 }
-
-#name_search_input {
-    width: 200px;
-    padding: 8px 30px 8px 10px;
-    border: 1px solid #444;
-    border-radius: 4px;
-    font-size: 14px;
-    background-color: #3a3a3a;
-    color: #e0e0e0;
+.reset_controls {
+    display: flex;
+    align-items: center;
+    justify-content: flex-end;
+    flex-shrink: 0;
 }
-
-#name_search_input:focus {
-    outline: none;
-    box-shadow: 0 0 0 2px rgba(97, 218, 251, 0.5);
-    border-color: #61dafb;
-}
-
-.name_search_clear {
-    position: absolute;
-    right: 8px;
-    background: none;
-    border: none;
-    font-size: 18px;
-    cursor: pointer;
-    color: #777;
-    display: none;
-}
-
-.name_search_clear.visible {
-    display: block;
-}
-
-.name_search_clear:hover {
-    color: #e74c3c;
-}
-
-/* Fix filter buttons styling */
 .filter_buttons {
     display: flex;
+    gap: 8px;
     flex-wrap: wrap;
-    gap: 10px;
-    margin-top: 5px;
 }
-
+.filter_buttons_inline {
+    flex-grow: 1;
+    justify-content: center;
+}
+.filter_buttons_wrap {
+    display: none; /* Hidden by default on larger screens */
+    justify-content: center;
+    flex-wrap: wrap;
+}
+#name_search_input {
+    padding: 6px 12px;
+    border-radius: 4px;
+    border: none;
+    font-size: 14px;
+    background-color: #3a3a3a;
+    color: #fff;
+    min-width: 140px;
+    flex-grow: 1;
+}
+.filter_action {
+    padding: 6px 10px;
+    border-radius: 4px;
+    border: 1px solid #555;
+    font-size: 15px;
+    cursor: pointer;
+    transition: all 0.2s ease;
+    background-color: #2a2a2a;
+    color: #aaa;
+    line-height: 1;
+    min-width: 36px;
+    text-align: center;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+/* Media query for responsive layout */
+@media (max-width: 992px) {
+    .filter_buttons_inline {
+        display: none; /* Hide inline buttons on smaller screens */
+    }
+    
+    .filter_buttons_wrap {
+        display: flex; /* Show wrapped buttons on smaller screens */
+        margin-top: 10px;
+    }
+    
+    .filter_top_row {
+        flex-wrap: nowrap; /* Keep search and reset on the same row */
+    }
+}
+@media (max-width: 576px) {
+    .filter_top_row {
+        flex-wrap: wrap; /* Allow wrapping on very small screens */
+    }
+    
+    .search_controls {
+        width: 100%;
+        justify-content: space-between;
+    }
+    
+    .reset_controls {
+        width: 100%;
+        margin-top: 10px;
+        justify-content: flex-end;
+    }
+}
 .filter {
     padding: 6px 12px;
     border-radius: 4px;
@@ -1158,12 +421,10 @@ body {
     transform: translateZ(0);
     backface-visibility: hidden;
 }
-
 .filter:hover {
     box-shadow: 0 0 5px rgba(255, 255, 255, 0.2);
     transform: none;
 }
-
 .filter::after {
     content: "";
     position: absolute;
@@ -1175,12 +436,10 @@ body {
     transform: translateX(-50%);
     transition: width 0.2s ease;
 }
-
 .filter_active::after {
     background:       currentColor;
     width:            100%;
 }
-
 #filter_function {
     color:            #f7dd72;
 }
@@ -1365,25 +624,232 @@ body {
     border-left: 2px solid transparent;
 }
 
-/* Update root caret styling */
+/* Update root caret styling - ensure perfect positioning */
 .root_term_caret,
-.root_term_header .root_term_caret {
+.root_term_header .root_term_caret,
+.root_term_content .name .root_term_caret {
     position: absolute;
-    left: 5px;
+    left: 8px;
     top: 50%;
     transform: translateY(-50%);
     color: #888;
     font-size: 16px;
     z-index: 10;
-    pointer-events: none;
+    pointer-events: auto;
     width: 20px;
     height: 20px;
     display: flex;
     align-items: center;
     justify-content: center;
+    cursor: pointer;
 }
 
-/* Ensure root content items have consistent height */
+/* Root group styling */
+.root_term_group {
+    position: relative;
+    margin: 0;
+    padding: 0 0 0 0;
+    line-height: 30px;
+    box-sizing: border-box;
+}
+
+/* Root term header styling */
+.root_term_header {
+    display: flex;
+    align-items: center;
+    background-color: #333;
+    border-radius: 4px;
+    transition: background-color 0.2s ease;
+    cursor: pointer;
+    position: relative;
+    margin: 0;
+    padding: 0;
+    height: 30px; /* Fixed height to match names */
+    min-height: 30px;
+    max-height: 30px;
+    box-sizing: border-box;
+    z-index: 1;
+}
+
+.root_term_header:hover {
+    background-color: #3a3a3a;
+}
+
+.root_term_header.root_header_hidden {
+    position: absolute;
+    visibility: hidden;
+    opacity: 0;
+    z-index: -1;
+    pointer-events: none;
+    height: 0;
+    min-height: 0;
+    max-height: 0;
+    overflow: hidden;
+    margin: 0;
+    padding: 0;
+}
+
+/* Root content styling */
+.root_term_content {
+    display: none; /* Hide by default */
+    margin: 0;
+    padding: 0; /* Remove padding to align with root headers */
+    border-left: none; /* Remove border that causes indentation */
+    box-sizing: border-box;
+}
+
+.root_term_content.expanded {
+    display: block; /* Show when expanded */
+}
+
+/* Root container styling */
+.root_term_container {
+    display: flex;
+    align-items: center;
+    flex-grow: 1;
+    padding: 0 10px;
+}
+
+.root_term_text {
+    font-weight: bold;
+}
+
+/* Lookup container styles */
+.lookup_container {
+    position: absolute;
+    top: 0;
+    right: 0;
+    bottom: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background-color: #2d2d2d;
+    display: none;
+    flex-direction: column;
+    border-radius: 8px;
+    overflow: hidden;
+    box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+    z-index: 100;
+}
+
+.lookup_container.visible {
+    display: flex;
+}
+
+.lookup_window {
+    display: flex;
+    flex-direction: column;
+    width: 100%;
+    height: 100%;
+    overflow: hidden;
+}
+
+.lookup_header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 15px 20px;
+    background-color: #333;
+    border-bottom: 1px solid #444;
+    position: relative;
+}
+
+.lookup_title {
+    font-size: 18px;
+    font-weight: bold;
+    color: #61dafb;
+}
+
+.lookup_close {
+    font-size: 24px;
+    cursor: pointer;
+    padding: 0 10px;
+    transition: all 0.2s ease;
+}
+
+.lookup_close:hover {
+    color: #e74c3c;
+    transform: scale(1.2);
+}
+
+.lookup_content {
+    flex-grow: 1;
+    padding: 20px;
+    overflow-y: auto;
+    background-color: #2d2d2d;
+}
+
+#lookup_result {
+    width: 100%;
+    height: 100%;
+    padding: 15px;
+    background-color: #1e1e1e;
+    color: #eee;
+    border: 1px solid #444;
+    border-radius: 4px;
+    font-family: monospace;
+    font-size: 14px;
+    line-height: 1.5;
+    resize: none;
+    outline: none;
+}
+
+.placeholder_panel {
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    align-items: center;
+    width: 100%;
+    height: 100%;
+    background-color: #2d2d2d;
+    border-radius: 8px;
+    text-align: center;
+    padding: 40px;
+    box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+}
+
+.placeholder_content {
+    max-width: 300px;
+}
+
+.placeholder_icon {
+    font-size: 48px;
+    margin-bottom: 20px;
+    opacity: 0.7;
+}
+
+.placeholder_text {
+    font-size: 18px;
+    color: #888;
+    line-height: 1.5;
+}
+
+/* Main container and column layout */
+.main_container {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 20px;
+    width: 100%;
+}
+
+.left_column {
+    flex: 2;
+    min-width: 300px;
+    display: flex;
+    flex-direction: column;
+}
+
+.right_column {
+    flex: 1;
+    min-width: 300px;
+    position: relative;
+    height: calc(100vh - 200px);
+    background-color: #2d2d2d;
+    border-radius: 8px;
+    box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+}
+
+/* Ensure root content items have consistent height and alignment */
 .root_term_content .name {
     height: 30px;
     min-height: 30px;
@@ -1393,4 +859,47 @@ body {
     padding: 0 8px 0 30px !important;
     margin: 0;
     box-sizing: border-box;
+    position: relative;
+    background-color: transparent;
+    transition: background-color 0.2s ease;
+}
+
+.root_term_content .name:hover {
+    background-color: rgba(97, 218, 251, 0.1);
+}
+
+/* Anti-wiggle fix for root group transitions */
+.root_term_group {
+    position: relative;
+    margin: 0;
+    padding: 0 0 0 0;
+    line-height: 30px;
+    box-sizing: border-box;
+}
+
+/* Fix alignment and visibility of content - remove indentation */
+.root_term_content {
+    margin: 0;
+    padding: 0; /* Remove padding to align with root headers */
+    border-left: none; /* Remove border that causes indentation */
+    box-sizing: border-box;
+}
+
+/* Perfect alignment of names and headers - ensure they're in exactly the same position */
+.root_term_header,
+.root_term_content .name {
+    position: relative;
+    display: flex;
+    align-items: center;
+    height: 30px;
+    line-height: 30px;
+    padding: 0 8px 0 30px !important;
+    margin: 0;
+    box-sizing: border-box;
+}
+
+/* Consistent cursor and hover effects */
+.root_term_header:hover,
+.root_term_content .name:hover {
+    background-color: rgba(97, 218, 251, 0.1);
 } 

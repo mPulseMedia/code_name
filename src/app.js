@@ -374,6 +374,32 @@ const app_event_listener_setup = () => {
         });
     }
     
+    // Set up root_open_all button
+    const root_open_all_button = document.getElementById('root_open_all');
+    if (root_open_all_button) {
+        root_open_all_button.addEventListener('click', () => {
+            // Check if all roots are already open
+            const all_headers = document.querySelectorAll('.root_term_header');
+            const closed_headers = document.querySelectorAll('.root_term_header:not(.root_header_hidden)');
+            
+            // If there are no closed headers (all are open), we should close all
+            // Otherwise, we should open all
+            if (closed_headers.length === 0 && all_headers.length > 0) {
+                debug('CLICK', 'Closing all root groups');
+                root_close_all();
+                // Update button to show it will open all next time - pointing right
+                root_open_all_button.textContent = '▶';
+                root_open_all_button.title = 'Open All Root Groups';
+            } else {
+                debug('CLICK', 'Opening all root groups');
+                root_open_all();
+                // Update button to show it will close all next time - pointing down
+                root_open_all_button.textContent = '▼';
+                root_open_all_button.title = 'Close All Root Groups';
+            }
+        });
+    }
+    
     // Set up search input
     const search_input_element = document.getElementById('name_search_input');
     const search_clear_element = document.getElementById('name_search_clear');
@@ -415,21 +441,6 @@ const app_event_listener_setup = () => {
                 search_apply('');
             }
             search_clear_element.classList.remove('visible');
-        });
-    }
-    
-    // Set up root toggle all button
-    const root_toggle_all_element = document.getElementById('root_toggle_all');
-    if (root_toggle_all_element) {
-        root_toggle_all_element.addEventListener('click', () => {
-            const is_open = root_toggle_all_element.textContent === '▼';
-            root_toggle_all_element.textContent = is_open ? '▶' : '▼';
-            
-            if (is_open) {
-                root_close_all();
-            } else {
-                root_open_all();
-            }
         });
     }
     
@@ -516,6 +527,11 @@ const app_init = () => {
         
         log('APP.INIT', 'Starting app initialization...');
         
+        // Initialize state with all roots closed
+        window.root_open_state = {};
+        window.search_root_previous_state = {};
+        window.search_root_match = {};
+        
         // If DOM isn't ready, wait for it
         if (document.readyState !== 'complete') {
             diag_log('DOM not complete, waiting...');
@@ -563,6 +579,9 @@ const initializeApp = () => {
         diag_html(); // Add HTML content check
         
         log('APP.INIT', 'Proceeding with app initialization...');
+        
+        // Initialize the root_open_state to empty object to ensure all roots start closed
+        window.root_open_state = {};
         
         // Verify required elements exist
         const index_element = document.getElementById('index');
@@ -761,16 +780,23 @@ const search_apply = (search_query) => {
     
     // Save current root state before search
     if (search_query) {
+        // Only save the state if we're actually searching
         window.search_root_previous_state = { ...window.root_open_state };
         window.search_root_match = {};
     } else {
-        // First restore the state from before search
-        window.root_open_state = { ...window.search_root_previous_state };
+        // If clearing search, only restore state if we previously had a search
+        if (window.filter_on_list.search_query !== '') {
+            // First restore the state from before search
+            window.root_open_state = { ...window.search_root_previous_state };
+            
+            // Then ensure roots that matched search remain open
+            Object.keys(window.search_root_match).forEach(root_name => {
+                window.root_open_state[root_name] = true;
+            });
+        }
         
-        // Then ensure roots that matched search remain open
-        Object.keys(window.search_root_match).forEach(root_name => {
-            window.root_open_state[root_name] = true;
-        });
+        // Clear the search match state regardless
+        window.search_root_match = {};
     }
     
     // Re-apply the filter to show all matching names
@@ -908,6 +934,14 @@ const root_close_all = () => {
     // Get all opened root contents
     const contents = document.querySelectorAll('.root_term_content.expanded');
     
+    // Skip if no expanded contents
+    if (contents.length === 0) {
+        console.log('No expanded root groups to close');
+        return;
+    }
+    
+    console.log('Closing', contents.length, 'expanded root groups');
+    
     // For each content, find its header and toggle it closed
     contents.forEach(content => {
         const group = content.closest('.root_term_group');
@@ -927,6 +961,9 @@ const root_close_all = () => {
     
     // Clear matched search results when explicitly closing all
     window.search_root_match = {};
+    
+    // Ensure the root_open_state is reset
+    window.root_open_state = {};
 };
 
 const root_group_create = (root_name, names_in_group, index_element) => {
@@ -942,7 +979,7 @@ const root_group_create = (root_name, names_in_group, index_element) => {
     const header_element = root_header_create(root_name, names_in_group);
     dom_element_append(root_group, header_element);
     
-    // Create content container for the names
+    // Create content container for the names, initially hidden
     const content_element = dom_element_create('div');
     dom_element_class_add(content_element, 'root_term_content');
     
@@ -951,20 +988,20 @@ const root_group_create = (root_name, names_in_group, index_element) => {
     names_in_group.forEach((name_string, index) => {
         const { name_element, term_list } = name_list_dom_render(name_string, term_previous_list);
         
-        // Add root toggle button to the first item in the expanded view
+        // Add root caret to the first item in the expanded view
         if (index === 0) {
-            // Create the root open/close button for the first name in group
-            const rootOpenButton = dom_element_create('button');
-            dom_element_class_add(rootOpenButton, 'name_root_open');
-            dom_element_text_set(rootOpenButton, '▼');
+            // Create the root caret span for the first name in group
+            const rootCaret = dom_element_create('span');
+            dom_element_class_add(rootCaret, 'root_term_caret');
+            dom_element_text_set(rootCaret, '▼');
             
-            // Add click handler with capture phase
-            rootOpenButton.addEventListener('click', (event) => {
+            // Add click handler
+            rootCaret.addEventListener('click', (event) => {
                 event.preventDefault();
                 event.stopPropagation();
                 event.stopImmediatePropagation();
                 
-                console.log('First item root toggle button clicked');
+                console.log('First item root toggle caret clicked');
                 
                 // Toggle the root group
                 toggleRootGroup(header_element, content_element, root_name);
@@ -972,8 +1009,8 @@ const root_group_create = (root_name, names_in_group, index_element) => {
                 return false;
             }, true); // Using capture phase to ensure this handler runs first
             
-            // Add the button to the name element
-            dom_element_append(name_element, rootOpenButton);
+            // Add the caret to the name element
+            dom_element_append(name_element, rootCaret);
             
             // Add root_item class to identify it
             name_element.classList.add('root_item');
@@ -994,11 +1031,22 @@ const root_group_create = (root_name, names_in_group, index_element) => {
     
     log('APP.DOM', 'Added root group to index:', root_name);
     
-    // Set initial open state
-    const is_open = window.root_open_state[root_name] || false;
+    // Set initial open state - default to closed and only open if explicitly set to true
+    const is_open = window.root_open_state[root_name] === true;
     if (is_open) {
+        // Only add expanded class if explicitly set to open
         content_element.classList.add('expanded');
         header_element.classList.add('root_header_hidden');
+    } else {
+        // Ensure it's closed
+        content_element.classList.remove('expanded');
+        header_element.classList.remove('root_header_hidden');
+        
+        // Make sure the root caret shows as closed
+        const headerCaret = header_element.querySelector('.root_term_caret');
+        if (headerCaret) {
+            headerCaret.textContent = '▶';
+        }
     }
     
     return root_group;
@@ -1012,11 +1060,11 @@ const root_header_create = (root_name, names_in_group) => {
     const header_element = dom_element_create('div');
     dom_element_class_add(header_element, 'root_term_header');
     
-    // Create button element instead of a caret span
-    const button_element = dom_element_create('button');
-    dom_element_class_add(button_element, 'name_root_open');
-    dom_element_text_set(button_element, '▶');
-    dom_element_append(header_element, button_element);
+    // Create caret span instead of a button element
+    const caret_element = dom_element_create('span');
+    dom_element_class_add(caret_element, 'root_term_caret');
+    dom_element_text_set(caret_element, '▶');
+    dom_element_append(header_element, caret_element);
     
     // Create term container
     const term_container_element = dom_element_create('div');
@@ -1079,22 +1127,22 @@ const root_content_create = (names_in_group) => {
 const root_connect = (header_element, content_element, root_name) => {
     window.name_list_func['root_connect'] = root_connect;
     
-    // Add click event to header button
-    const toggleButton = header_element.querySelector('.name_root_open');
-    if (toggleButton) {
+    // Add click event to the caret element
+    const caret_element = header_element.querySelector('.root_term_caret');
+    if (caret_element) {
         // Remove any existing listeners first
-        const newButton = toggleButton.cloneNode(true);
-        if (toggleButton.parentNode) {
-            toggleButton.parentNode.replaceChild(newButton, toggleButton);
+        const newCaret = caret_element.cloneNode(true);
+        if (caret_element.parentNode) {
+            caret_element.parentNode.replaceChild(newCaret, caret_element);
         }
         
         // Add new click handler with higher priority
-        newButton.addEventListener('click', (event) => {
+        newCaret.addEventListener('click', (event) => {
             event.preventDefault();
             event.stopPropagation();
             event.stopImmediatePropagation();
             
-            console.log('Root toggle button clicked');
+            console.log('Root toggle caret clicked');
             
             // Toggle the root group
             toggleRootGroup(header_element, content_element, root_name);
@@ -1103,10 +1151,10 @@ const root_connect = (header_element, content_element, root_name) => {
         }, true); // Using capture phase to ensure this handler runs first
     }
     
-    // Add click event to the header itself (separate from the button)
+    // Add click event to the header itself (separate from the caret)
     header_element.addEventListener('click', (event) => {
-        // Skip if clicking on the button
-        if (event.target && event.target.classList && event.target.classList.contains('name_root_open')) {
+        // Skip if clicking on the caret
+        if (event.target && event.target.classList && event.target.classList.contains('root_term_caret')) {
             return;
         }
         
@@ -1131,80 +1179,79 @@ const toggleRootGroup = (header_element, content_element, root_name) => {
     if (isCurrentlyOpen) {
         // If currently open, close it and show the header
         content_element.classList.remove('expanded');
-        header_element.classList.remove('root_header_hidden');
         
-        // Make sure header is completely visible
-        header_element.style.display = '';
+        // Make header visible again
+        header_element.classList.remove('root_header_hidden');
         header_element.style.visibility = 'visible';
         header_element.style.opacity = '1';
         header_element.style.pointerEvents = 'auto';
+        header_element.style.zIndex = '1';
+        header_element.style.position = 'relative';
         header_element.style.height = '30px';
+        header_element.style.minHeight = '30px';
+        header_element.style.maxHeight = '30px';
         
-        // Remove root indicator class from all items
-        const rootItems = content_element.querySelectorAll('.root_item');
-        rootItems.forEach(item => {
-            item.classList.remove('root_item');
-        });
-        
-        // Update button text in header
-        const headerButton = header_element.querySelector('.name_root_open');
-        if (headerButton) {
-            headerButton.textContent = '▶';
-            // Force the button to be visible and clickable
-            headerButton.style.visibility = 'visible';
-            headerButton.style.pointerEvents = 'auto';
+        // Update caret in header
+        const headerCaret = header_element.querySelector('.root_term_caret');
+        if (headerCaret) {
+            headerCaret.textContent = '▶';
+            headerCaret.style.visibility = 'visible';
+            headerCaret.style.pointerEvents = 'auto';
         }
+        
+        // Remove any carets from all items in content
+        const itemCarets = content_element.querySelectorAll('.root_term_caret');
+        itemCarets.forEach(caret => {
+            caret.remove();
+        });
         
         // Update state
         window.root_open_state[root_name] = false;
     } else {
-        // If currently closed, open it and completely hide the header
+        // If currently closed, open it and hide the header
         content_element.classList.add('expanded');
-        header_element.classList.add('root_header_hidden');
         
-        // Force header to be completely hidden
-        header_element.style.display = 'none'; 
+        // Hide header
+        header_element.classList.add('root_header_hidden');
         header_element.style.visibility = 'hidden';
         header_element.style.opacity = '0';
         header_element.style.pointerEvents = 'none';
+        header_element.style.zIndex = '-1';
+        header_element.style.position = 'absolute';
         header_element.style.height = '0';
+        header_element.style.minHeight = '0';
+        header_element.style.maxHeight = '0';
         
-        // Add root indicator class to first item
+        // Add caret to first item
         const firstItem = content_element.querySelector('.name:first-child');
         if (firstItem) {
-            firstItem.classList.add('root_item');
-            
-            // Ensure the first item has a toggle button
-            let firstItemButton = firstItem.querySelector('.name_root_open');
-            if (!firstItemButton) {
-                // Create a new button if it doesn't exist
-                firstItemButton = document.createElement('button');
-                firstItemButton.className = 'name_root_open';
-                firstItemButton.textContent = '▼';
-                
-                // Add click handler with capture phase
-                firstItemButton.addEventListener('click', (event) => {
-                    event.preventDefault();
-                    event.stopPropagation();
-                    event.stopImmediatePropagation();
-                    
-                    console.log('Dynamically added button clicked');
-                    
-                    // Toggle the root group
-                    toggleRootGroup(header_element, content_element, root_name);
-                    
-                    return false;
-                }, true);
-                
-                // Add to the first item
-                firstItem.appendChild(firstItemButton);
-            } else {
-                // Update text if button exists
-                firstItemButton.textContent = '▼';
-                // Force the button to be visible and clickable
-                firstItemButton.style.visibility = 'visible';
-                firstItemButton.style.pointerEvents = 'auto';
+            // Remove old caret if exists
+            const oldCaret = firstItem.querySelector('.root_term_caret');
+            if (oldCaret) {
+                oldCaret.remove();
             }
+            
+            // Create a new caret
+            const firstItemCaret = document.createElement('span');
+            firstItemCaret.className = 'root_term_caret';
+            firstItemCaret.textContent = '▼';
+            
+            // Add click handler with capture phase
+            firstItemCaret.addEventListener('click', (event) => {
+                event.preventDefault();
+                event.stopPropagation();
+                event.stopImmediatePropagation();
+                
+                console.log('Caret clicked to close');
+                
+                // Toggle the root group
+                toggleRootGroup(header_element, content_element, root_name);
+                
+                return false;
+            }, true);
+            
+            // Add to the first item
+            firstItem.appendChild(firstItemCaret);
         }
         
         // Update state
@@ -1285,7 +1332,7 @@ function createStandaloneCloseButton() {
         position: 'absolute',
         top: '5px',
         right: '5px',
-        zIndex: '200', // Higher z-index than name_root_open buttons
+        zIndex: '200', // Higher z-index than root_term_caret elements
         width: '40px',
         height: '40px',
         fontSize: '28px',
@@ -1327,13 +1374,8 @@ function createStandaloneCloseButton() {
         return false;
     };
     
-    // Append to lookup container header
-    const lookupHeader = lookupContainer.querySelector('.lookup_header');
-    if (lookupHeader) {
-        lookupHeader.appendChild(closeButton);
-    } else {
-        lookupContainer.appendChild(closeButton);
-    }
+    // Append to lookup container
+    lookupContainer.appendChild(closeButton);
     
     return closeButton;
 }
@@ -1742,11 +1784,12 @@ const name_list_dom_render = (name_string, term_previous_list) => {
     
     // Enhanced click handler with lookup and detailed debug logging
     name_element.onclick = function(event) {
-        // Check if the click is on the root open button
+        // Check if the click is on the root caret
         if (event.target && event.target.classList && 
-            event.target.classList.contains('name_root_open')) {
-            // If clicking on the button, don't process the name click
-            return;
+            event.target.classList.contains('root_term_caret')) {
+            // If clicking on the caret, don't process the name click
+            console.log('Click on root_term_caret, ignoring name click');
+            return true; // Allow event propagation for the caret click
         }
         
         debug('CLICK', 'Name element clicked:', name_string);
@@ -2067,13 +2110,17 @@ const filter_all_reset = () => {
     window.search_root_match = {};
     window.search_root_previous_state = {};
     
+    // Ensure all root groups are closed
+    window.root_open_state = {};
+    
     // Close all expanded root groups
     root_close_all();
     
-    // Update the root toggle button to show collapsed state
-    const root_toggle_all_element = document.getElementById('root_toggle_all');
-    if (root_toggle_all_element) {
-        root_toggle_all_element.textContent = '▶';
+    // Update root_open_all button to show the right-facing triangle
+    const root_open_all_button = document.getElementById('root_open_all');
+    if (root_open_all_button) {
+        root_open_all_button.textContent = '▶';
+        root_open_all_button.title = 'Open All Root Groups';
     }
     
     // Apply filters immediately
@@ -2119,3 +2166,473 @@ const filter_exclusive_set = (active_filter) => {
     
     log('APP.FILTER', 'Set exclusive filter:', active_filter);
 };
+
+// =====================================================================
+// REVEAL MODE FEATURE
+// =====================================================================
+/**
+ * REVEAL MODE
+ * 
+ * A development tool that helps visualize element hierarchies and copy selectors.
+ * 
+ * Features:
+ * - Shows element information when hovering over UI elements
+ * - Adds highlighting to elements being inspected
+ * - Displays a panel at the bottom showing element hierarchy
+ * - Allows copying tag names, IDs and classes by clicking
+ * 
+ * Usage:
+ * - Toggle with the "Reveal Mode" button in the top-right corner
+ * - Or press Alt+R to toggle the mode
+ * - Hover over elements to inspect them
+ * - Click on any tag, ID or class name to copy to clipboard
+ */
+
+// Initialize reveal mode state - default to OFF
+window.reveal_mode = false;
+
+// Create overlay to block interactions with elements underneath the panel
+const reveal_overlay = document.createElement('div');
+reveal_overlay.style.position = 'fixed';
+reveal_overlay.style.top = '0';
+reveal_overlay.style.left = '0';
+reveal_overlay.style.width = '100%';
+reveal_overlay.style.height = '100%';
+reveal_overlay.style.backgroundColor = 'rgba(0, 0, 0, 0.1)';
+reveal_overlay.style.zIndex = '9999';
+reveal_overlay.style.display = 'none';
+reveal_overlay.style.pointerEvents = 'auto';
+document.body.appendChild(reveal_overlay);
+
+// Create class display element with styling that matches the codebase
+const reveal_display = document.createElement('div');
+reveal_display.style.position = 'fixed';
+reveal_display.style.bottom = '0'; // Place it at the bottom of the screen
+reveal_display.style.left = '0';
+reveal_display.style.right = '0';
+reveal_display.style.backgroundColor = 'rgba(45, 45, 45, 0.95)';
+reveal_display.style.color = 'white';
+reveal_display.style.padding = '15px 20px';
+reveal_display.style.fontFamily = 'monospace';
+reveal_display.style.fontSize = '16px';
+reveal_display.style.zIndex = '10000';
+reveal_display.style.textAlign = 'left';
+reveal_display.style.maxHeight = '70vh'; // Increase max height to 70% of viewport height
+reveal_display.style.height = '50vh'; // Set a default height of 50% of viewport height
+reveal_display.style.overflowY = 'auto';
+reveal_display.style.boxShadow = '0 -4px 20px rgba(0, 0, 0, 0.5)'; // Stronger top shadow
+reveal_display.style.borderTop = '2px solid #61dafb'; // More visible top border with theme color
+reveal_display.style.display = 'none'; // Hidden by default
+reveal_display.style.pointerEvents = 'auto'; // Ensure it captures all mouse events
+document.body.appendChild(reveal_display);
+
+// Create a permanent toggle button for reveal mode with styling matching the app theme
+const reveal_toggle_btn = document.createElement('button');
+reveal_toggle_btn.textContent = 'Reveal Mode: OFF';
+reveal_toggle_btn.style.position = 'fixed';
+reveal_toggle_btn.style.top = '10px';
+reveal_toggle_btn.style.right = '10px';
+reveal_toggle_btn.style.backgroundColor = 'rgba(100, 100, 100, 0.7)'; // Gray for OFF state
+reveal_toggle_btn.style.color = 'white';
+reveal_toggle_btn.style.border = '1px solid rgba(100, 100, 100, 0.9)';
+reveal_toggle_btn.style.borderRadius = '4px';
+reveal_toggle_btn.style.padding = '5px 10px';
+reveal_toggle_btn.style.fontFamily = '-apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Oxygen, Ubuntu, Cantarell, "Open Sans", "Helvetica Neue", sans-serif';
+reveal_toggle_btn.style.fontSize = '14px';
+reveal_toggle_btn.style.zIndex = '10001';
+reveal_toggle_btn.style.cursor = 'pointer';
+reveal_toggle_btn.style.boxShadow = '0 2px 5px rgba(0, 0, 0, 0.3)';
+document.body.appendChild(reveal_toggle_btn);
+
+// Setup variables for reveal mode
+let reveal_hover_timeout = null;
+let reveal_last_element = null;
+let reveal_current_target = null;
+let reveal_hover_start_time = 0;
+const REVEAL_HOVER_THRESHOLD = 600; // ms to hover before activating
+
+// Function to update reveal mode state
+function reveal_update_state() {
+    if (window.reveal_mode) {
+        reveal_toggle_btn.textContent = 'Reveal Mode: ON';
+        reveal_toggle_btn.style.backgroundColor = 'rgba(97, 218, 251, 0.7)';
+        reveal_toggle_btn.style.border = '1px solid rgba(97, 218, 251, 0.9)';
+        document.body.style.outline = '3px solid rgba(97, 218, 251, 0.5)';
+    } else {
+        reveal_toggle_btn.textContent = 'Reveal Mode: OFF';
+        reveal_toggle_btn.style.backgroundColor = 'rgba(100, 100, 100, 0.7)';
+        reveal_toggle_btn.style.border = '1px solid rgba(100, 100, 100, 0.9)';
+        document.body.style.outline = 'none';
+        reveal_hide_panel();
+        
+        // Remove any highlights
+        const highlighted_elements = document.querySelectorAll('.reveal-highlight');
+        highlighted_elements.forEach(el => {
+            el.classList.remove('reveal-highlight');
+            el.style.outline = '';
+        });
+    }
+}
+
+// Initialize button state
+reveal_update_state();
+
+// Add click handler to the toggle button
+reveal_toggle_btn.addEventListener('click', function() {
+    window.reveal_mode = !window.reveal_mode;
+    reveal_update_state();
+    console.log(`Reveal Mode ${window.reveal_mode ? 'Enabled' : 'Disabled'}`);
+});
+
+// Function to show the element hierarchy panel
+function reveal_show_panel(target) {
+    // Store the last inspected element
+    reveal_last_element = target;
+    
+    // Build and show the hierarchy information
+    reveal_update_display(target);
+    
+    // Show the overlay to block interactions with elements underneath
+    reveal_overlay.style.display = 'block';
+    
+    // Make sure the panel is visible and properly sized
+    reveal_display.style.display = 'block';
+    
+    // Give the panel a nice entrance animation
+    reveal_display.style.animation = 'slideUp 0.3s ease-out';
+    
+    // Add the animation if it doesn't exist
+    if (!document.querySelector('#reveal-animation')) {
+        const style = document.createElement('style');
+        style.id = 'reveal-animation';
+        style.textContent = `
+            @keyframes slideUp {
+                from { transform: translateY(100%); }
+                to { transform: translateY(0); }
+            }
+        `;
+        document.head.appendChild(style);
+    }
+    
+    console.log('Element hierarchy panel displayed');
+}
+
+// Function to hide the element hierarchy panel
+function reveal_hide_panel() {
+    // Hide the panel and overlay
+    reveal_display.style.display = 'none';
+    reveal_overlay.style.display = 'none';
+    
+    // Remove highlight from last element
+    if (reveal_last_element) {
+        reveal_last_element.classList.remove('reveal-highlight');
+        reveal_last_element.style.outline = '';
+    }
+    
+    // Reset variables
+    reveal_current_target = null;
+    reveal_last_element = null;
+    
+    console.log('Element hierarchy panel hidden');
+}
+
+// Function to update the class display with element info
+function reveal_update_display(target) {
+    // Extract class names and IDs
+    const classes = Array.from(target.classList).join(', ');
+    const id = target.id ? `#${target.id}` : '';
+    const tag_name = target.tagName.toLowerCase();
+    
+    // Build hierarchical information
+    let hierarchy_info = '';
+    let current_element = target;
+    let depth = 0;
+    
+    // Title for the panel
+    const titleSection = `
+        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px; padding-bottom: 10px; border-bottom: 1px solid #444;">
+            <div style="font-weight: bold; font-size: 24px; color: #61dafb;">Element Hierarchy Inspector</div>
+            <button id="reveal_close_btn" style="
+                width: 36px;
+                height: 36px;
+                border-radius: 50%;
+                background-color: rgba(231, 76, 60, 0.8);
+                color: white;
+                border: none;
+                font-size: 20px;
+                font-weight: bold;
+                display: flex;
+                align-items: center;
+                justify-content: center;
+                cursor: pointer;
+                box-shadow: 0 2px 5px rgba(0, 0, 0, 0.3);
+                transition: all 0.2s ease;
+                padding: 0;
+                line-height: 1;
+            ">×</button>
+        </div>
+    `;
+    
+    // Current element details (highlighted)
+    const currentElementSection = `
+        <div style="background-color: rgba(97, 218, 251, 0.1); padding: 15px; border-radius: 6px; margin-bottom: 20px; border-left: 4px solid #61dafb;">
+            <div style="font-size: 18px; font-weight: bold; margin-bottom: 8px; color: #61dafb;">Selected Element:</div>
+            <div style="display: flex; flex-wrap: wrap; gap: 8px; margin-bottom: 8px;">
+                <span class="copy-item" data-copy="${tag_name}" style="color: #61dafb; font-weight: bold; cursor: pointer; font-size: 18px;">${tag_name}</span>
+                ${id ? `<span class="copy-item" data-copy="${id}" style="color: #f7dd72; cursor: pointer; font-size: 16px;">${id}</span>` : ''}
+                ${classes ? `<span class="copy-item" data-copy=".${classes.replace(/, /g, ' .')}" style="color: #e28eff; cursor: pointer; font-size: 16px;">.${classes.replace(/, /g, ' .')}</span>` : ''}
+            </div>
+            <div style="font-size: 14px; color: #aaa; margin-top: 8px;">Click any element above to copy to clipboard</div>
+        </div>
+    `;
+    
+    // Parent hierarchy
+    let parentHierarchy = '';
+    
+    // Skip the current element (already displayed) and show only parents
+    current_element = current_element.parentElement;
+    depth = 1;
+    
+    // Show up to 8 parent levels
+    while (current_element && depth <= 8) {
+        const el_classes = Array.from(current_element.classList).join(', ');
+        const el_id = current_element.id ? `#${current_element.id}` : '';
+        const el_tag = current_element.tagName.toLowerCase();
+        
+        // Add data attributes for copying
+        const tag_for_copy = `data-copy="${el_tag}"`;
+        const id_for_copy = el_id ? `data-copy="${el_id}"` : '';
+        const classes_for_copy = el_classes ? `data-copy=".${el_classes.replace(/, /g, ' .')}"` : '';
+        
+        // Create color coding that matches the app's theme
+        const tag_color = '#cccccc';
+        const id_color = '#f7dd72'; // Yellow like function names
+        const class_color = '#e28eff'; // Purple like class names
+        
+        parentHierarchy += `
+            <div style="padding: 8px 8px 8px ${(depth * 15)}px; border-bottom: 1px solid #333; display: flex; flex-wrap: wrap; align-items: center; gap: 8px;">
+                <span style="color: #888; font-size: 12px; min-width: 20px;">${depth}.</span>
+                <span class="copy-item" ${tag_for_copy} style="color:${tag_color}; cursor: pointer;">${el_tag}</span>
+                ${el_id ? `<span class="copy-item" ${id_for_copy} style="color:${id_color}; cursor: pointer;">${el_id}</span>` : ''}
+                ${el_classes ? `<span class="copy-item" ${classes_for_copy} style="color:${class_color}; cursor: pointer;">.${el_classes.replace(/, /g, ' .')}</span>` : ''}
+            </div>
+        `;
+        
+        current_element = current_element.parentElement;
+        depth++;
+    }
+    
+    const parentSection = `
+        <div style="margin-bottom: 20px;">
+            <div style="font-size: 18px; font-weight: bold; margin-bottom: 10px; color: #aaa;">Parent Elements:</div>
+            ${parentHierarchy || '<div style="color: #888; font-style: italic;">No parent elements</div>'}
+        </div>
+    `;
+    
+    // Instructions footer
+    const footerSection = `
+        <div style="margin-top: 20px; padding-top: 10px; border-top: 1px solid #444; text-align: center; color: #888; font-size: 13px;">
+            Hover over elements in reveal mode to inspect them. Click any element name to copy its selector.
+        </div>
+    `;
+    
+    // Combine all sections
+    reveal_display.innerHTML = `
+        <div style="padding: 20px;">
+            ${titleSection}
+            ${currentElementSection}
+            ${parentSection}
+            ${footerSection}
+        </div>
+    `;
+    
+    reveal_display.style.display = 'block';
+    
+    // Add click event listeners to all copy items
+    const copy_items = reveal_display.querySelectorAll('.copy-item');
+    copy_items.forEach(item => {
+        item.addEventListener('click', function(e) {
+            e.stopPropagation(); // Prevent event from bubbling up
+            const text_to_copy = this.getAttribute('data-copy');
+            reveal_copy_to_clipboard(text_to_copy);
+            reveal_show_copy_feedback(this);
+        });
+    });
+    
+    // Add click handler for the close button
+    const close_btn = document.getElementById('reveal_close_btn');
+    if (close_btn) {
+        // Add hover effects
+        close_btn.onmouseover = function() {
+            this.style.backgroundColor = 'rgba(231, 76, 60, 1)';
+            this.style.transform = 'scale(1.1)';
+            this.style.boxShadow = '0 3px 7px rgba(0, 0, 0, 0.4)';
+        };
+        
+        close_btn.onmouseout = function() {
+            this.style.backgroundColor = 'rgba(231, 76, 60, 0.8)';
+            this.style.transform = 'scale(1)';
+            this.style.boxShadow = '0 2px 5px rgba(0, 0, 0, 0.3)';
+        };
+        
+        close_btn.addEventListener('click', function(e) {
+            e.stopPropagation(); // Prevent event from bubbling up
+            reveal_hide_panel();
+        });
+    }
+    
+    // Add subtle highlight to the hovered element
+    const previous_highlight = document.querySelector('.reveal-highlight');
+    if (previous_highlight && previous_highlight !== target) {
+        previous_highlight.classList.remove('reveal-highlight');
+        previous_highlight.style.outline = '';
+    }
+    
+    target.classList.add('reveal-highlight');
+    target.style.outline = '3px dashed rgba(97, 218, 251, 0.9)'; // Match app theme color
+}
+
+// Function to copy text to clipboard
+function reveal_copy_to_clipboard(text) {
+    // Create a temporary textarea element
+    const textarea = document.createElement('textarea');
+    textarea.value = text;
+    textarea.setAttribute('readonly', '');
+    textarea.style.position = 'absolute';
+    textarea.style.left = '-9999px';
+    document.body.appendChild(textarea);
+    
+    // Select and copy the text
+    textarea.select();
+    document.execCommand('copy');
+    
+    // Clean up
+    document.body.removeChild(textarea);
+    console.log('Copied to clipboard:', text);
+}
+
+// Function to show copy feedback
+function reveal_show_copy_feedback(element) {
+    // Create feedback element
+    const feedback = document.createElement('div');
+    feedback.textContent = 'Copied!';
+    feedback.style.position = 'absolute';
+    feedback.style.backgroundColor = 'rgba(97, 218, 251, 0.8)'; // Match app theme color
+    feedback.style.color = 'white';
+    feedback.style.padding = '3px 8px';
+    feedback.style.borderRadius = '4px';
+    feedback.style.fontSize = '12px';
+    feedback.style.zIndex = '10001';
+    feedback.style.pointerEvents = 'none';
+    
+    // Position the feedback near the clicked element
+    const rect = element.getBoundingClientRect();
+    feedback.style.top = `${rect.top - 25}px`;
+    feedback.style.left = `${rect.left + rect.width / 2 - 30}px`;
+    
+    // Add to the body and animate
+    document.body.appendChild(feedback);
+    
+    // Animate and remove
+    setTimeout(() => {
+        feedback.style.opacity = '0';
+        feedback.style.transition = 'opacity 0.5s';
+        setTimeout(() => {
+            document.body.removeChild(feedback);
+        }, 500);
+    }, 1000);
+}
+
+// Make sure the overlay traps all events properly
+reveal_overlay.addEventListener('mouseover', e => e.stopPropagation());
+reveal_overlay.addEventListener('mouseout', e => e.stopPropagation());
+reveal_overlay.addEventListener('mousemove', e => e.stopPropagation());
+reveal_overlay.addEventListener('click', e => {
+    // Only if clicking the overlay itself, not the panel, close the panel
+    if (e.target === reveal_overlay) {
+        e.stopPropagation();
+        reveal_hide_panel();
+    }
+});
+
+// Trap events on the display panel
+reveal_display.addEventListener('mouseover', e => e.stopPropagation());
+reveal_display.addEventListener('mouseout', e => e.stopPropagation());
+reveal_display.addEventListener('mousemove', e => e.stopPropagation());
+reveal_display.addEventListener('click', e => {
+    // Only prevent propagation if clicking the panel itself, not interactive elements
+    if (e.target === reveal_display) {
+        e.stopPropagation();
+    }
+});
+
+// Add hover event listener to all elements
+document.addEventListener('mouseover', function(event) {
+    if (!window.reveal_mode) return;
+    
+    // If panel is already displayed, don't process any hover events
+    if (reveal_display.style.display === 'block') return;
+    
+    // Store the currently hovered element
+    const target = event.target;
+    
+    // If hovering over the reveal mode UI elements, don't change anything
+    if (target === reveal_display || reveal_display.contains(target) || 
+        target === reveal_toggle_btn || target === reveal_overlay) {
+        return;
+    }
+    
+    // Clear any existing timeout
+    if (reveal_hover_timeout) {
+        clearTimeout(reveal_hover_timeout);
+    }
+    
+    // Only update the target if we've actually moved to a new element
+    if (target !== reveal_current_target) {
+        reveal_current_target = target;
+        reveal_hover_start_time = Date.now();
+    }
+    
+    // Set a delay before updating the display
+    reveal_hover_timeout = setTimeout(() => {
+        // Only update display if we've been hovering for the threshold time
+        const hover_time = Date.now() - reveal_hover_start_time;
+        if (hover_time >= REVEAL_HOVER_THRESHOLD) {
+            reveal_show_panel(reveal_current_target);
+        }
+    }, REVEAL_HOVER_THRESHOLD);
+});
+
+// Add key event to toggle reveal mode
+document.addEventListener('keydown', function(event) {
+    // Toggle reveal mode when pressing Alt+R
+    if (event.altKey && event.key === 'r') {
+        window.reveal_mode = !window.reveal_mode;
+        reveal_update_state();
+        
+        // Show notification
+        if (window.reveal_mode) {
+            // Create and show a notification
+            const notification = document.createElement('div');
+            notification.textContent = 'Reveal Mode Activated - Press Alt+R to toggle';
+            notification.style.position = 'fixed';
+            notification.style.top = '20px';
+            notification.style.left = '50%';
+            notification.style.transform = 'translateX(-50%)';
+            notification.style.backgroundColor = 'rgba(45, 45, 45, 0.9)';
+            notification.style.color = '#61dafb'; // Match app theme color
+            notification.style.padding = '8px 15px';
+            notification.style.borderRadius = '5px';
+            notification.style.fontFamily = 'monospace';
+            notification.style.fontSize = '14px';
+            notification.style.zIndex = '10000';
+            notification.style.boxShadow = '0 2px 10px rgba(0, 0, 0, 0.5)';
+            document.body.appendChild(notification);
+            
+            // Remove the notification after 3 seconds
+            setTimeout(() => {
+                notification.remove();
+            }, 3000);
+        }
+    }
+});
