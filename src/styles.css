@@ -1037,4 +1037,130 @@ body {
         max-width: 100%;
         padding: 0;
     }
+}
+
+/* Mobile landscape mode specific adjustments */
+@media (max-height: 500px) and (orientation: landscape) {
+    /* Adjust body padding for landscape mode */
+    body {
+        padding: 10px;
+    }
+    
+    /* Make filter container more compact */
+    .filter_container {
+        padding: 8px;
+        margin-bottom: 10px;
+    }
+    
+    /* Adjust filter top row */
+    .filter_top_row {
+        flex-wrap: wrap;
+        gap: 5px;
+        margin-bottom: 5px;
+    }
+    
+    /* Make search controls take full width initially */
+    .search_controls {
+        width: 100%;
+        justify-content: space-between;
+        min-width: 0;
+    }
+    
+    /* Position reset button differently */
+    .reset_controls {
+        position: absolute;
+        top: 8px;
+        right: 8px;
+        margin-top: 0;
+    }
+    
+    /* Make reset button more compact in landscape */
+    #filter_reset_all {
+        font-size: 12px;
+        padding: 4px 8px;
+    }
+    
+    /* Make sure filter container allows for absolute positioning */
+    .filter_container {
+        position: relative;
+    }
+    
+    /* Smaller search input for landscape */
+    #name_search_input {
+        padding: 4px 8px;
+        font-size: 13px;
+    }
+    
+    /* Smaller action buttons */
+    .filter_action {
+        padding: 4px 8px;
+        font-size: 13px;
+    }
+    
+    /* Compact filter buttons for landscape */
+    .filter_buttons_wrap {
+        margin-top: 5px;
+    }
+    
+    /* Smaller index container in landscape */
+    .index_container {
+        height: calc(100vh - 180px);
+        padding: 10px;
+        margin-bottom: 8px;
+    }
+    
+    /* Adjust app title for landscape */
+    .app_title {
+        margin-bottom: 10px;
+        padding: 5px 0;
+    }
+}
+
+/* Alternative layout for wider landscape on mobile */
+@media (min-width: 600px) and (max-height: 500px) and (orientation: landscape) {
+    /* Position reset button to the right of search controls */
+    .filter_top_row {
+        flex-wrap: nowrap;
+        justify-content: space-between;
+    }
+    
+    .search_controls {
+        width: auto;
+        flex: 1;
+    }
+    
+    .reset_controls {
+        position: static;
+        margin-top: 0;
+        width: auto;
+    }
+    
+    /* Show even more compact filter buttons */
+    .filter {
+        padding: 3px 6px;
+        font-size: 11px;
+    }
+}
+
+/* Handle narrow landscape on mobile devices */
+@media (max-width: 599px) and (max-height: 500px) and (orientation: landscape) {
+    /* Force search controls to be smaller */
+    .search_controls {
+        gap: 3px;
+    }
+    
+    /* Reset button below search on very narrow screens */
+    @media (max-width: 400px) {
+        .reset_controls {
+            position: static;
+            width: 100%;
+            justify-content: flex-end;
+            margin-top: 5px;
+        }
+        
+        /* Add extra padding for reset button */
+        .filter_buttons_wrap {
+            margin-top: 10px;
+        }
+    }
 } 
